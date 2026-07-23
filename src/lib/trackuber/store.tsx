@@ -86,21 +86,54 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(defaultState);
   const [range, setRangeState] = useState<DateRange>(() => computeRange("thisMonth"));
   const [hydrated, setHydrated] = useState(false);
+  const remoteReadyRef = useRef(false);
 
-  // Track auth user for per-user storage keying
+  async function loadRemote(uid: string): Promise<AppState | null> {
+    const { data, error } = await supabase
+      .from("user_data")
+      .select("entries, fleet, profile")
+      .eq("user_id", uid)
+      .maybeSingle();
+    if (error || !data) return null;
+    return {
+      entries: (data.entries as AppState["entries"]) ?? {},
+      fleet: { ...defaultFleet, ...(data.fleet as Partial<FleetSettings>) },
+      profile: { ...defaultProfile, ...(data.profile as Partial<Profile>) },
+    };
+  }
+
+  async function hydrateFor(uid: string | null) {
+    const key = uid ?? GUEST_KEY;
+    setUserKey(key);
+    const local = loadState(key);
+    setState(local);
+    setRangeState(loadRange(key));
+    setHydrated(true);
+    if (uid) {
+      remoteReadyRef.current = false;
+      const remote = await loadRemote(uid);
+      if (remote) {
+        setState(remote);
+      } else {
+        await supabase.from("user_data").upsert({
+          user_id: uid,
+          entries: local.entries,
+          fleet: local.fleet,
+          profile: local.profile,
+        });
+      }
+      remoteReadyRef.current = true;
+    } else {
+      remoteReadyRef.current = false;
+    }
+  }
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      const key = data.session?.user?.id ?? GUEST_KEY;
-      setUserKey(key);
-      setState(loadState(key));
-      setRangeState(loadRange(key));
-      setHydrated(true);
+      hydrateFor(data.session?.user?.id ?? null);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      const key = session?.user?.id ?? GUEST_KEY;
-      setUserKey(key);
-      setState(loadState(key));
-      setRangeState(loadRange(key));
+      hydrateFor(session?.user?.id ?? null);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -108,6 +141,22 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     localStorage.setItem(STORAGE_PREFIX + userKey, JSON.stringify(state));
+    if (userKey !== GUEST_KEY && remoteReadyRef.current) {
+      const t = setTimeout(() => {
+        supabase
+          .from("user_data")
+          .upsert({
+            user_id: userKey,
+            entries: state.entries,
+            fleet: state.fleet,
+            profile: state.profile,
+          })
+          .then(({ error }) => {
+            if (error) console.error("Sync failed:", error);
+          });
+      }, 500);
+      return () => clearTimeout(t);
+    }
   }, [state, hydrated, userKey]);
 
   useEffect(() => {
