@@ -84,8 +84,12 @@ function Dashboard() {
   const summary = useMemo(() => summarize(state, range), [state, range]);
   const currency = state.fleet.currency;
 
-  const revenueSeries = summary.daily.map((d) => ({ date: formatDateShort(d.date), Revenue: d.gross }));
-  const profitSeries = summary.daily.map((d) => ({ date: formatDateShort(d.date), Profit: d.profit }));
+  const metricsSeries = summary.daily.map((d) => ({
+    date: formatDateShort(d.date),
+    Revenue: d.gross,
+    Expenditure: d.expenses,
+    Profit: d.profit,
+  }));
 
   const expensePieRaw = [
     ...Object.entries(summary.expensesByCategory).map(([name, value]) => ({ name, value })),
@@ -93,11 +97,16 @@ function Dashboard() {
   if (summary.weeklyFees > 0) expensePieRaw.push({ name: "Weekly Fee", value: summary.weeklyFees });
 
   const revenuePie = [
-    { name: "Card", value: summary.cardRevenue },
+    { name: "Cashless", value: summary.cardRevenue },
     { name: "Cash", value: summary.cashCollected },
   ].filter((s) => s.value > 0);
 
-  const chartColors = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
+  const otherExpenseColors = ["var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--chart-1)"];
+  const expenseColorFor = (name: string, idx: number) => {
+    if (name.toLowerCase() === "fuel") return "#ef4444";
+    return otherExpenseColors[idx % otherExpenseColors.length];
+  };
+  const revenueColors: Record<string, string> = { Cashless: "var(--chart-1)", Cash: "var(--chart-3)" };
 
   return (
     <div className="flex flex-col gap-6">
