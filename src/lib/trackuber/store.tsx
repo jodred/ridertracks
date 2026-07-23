@@ -96,9 +96,9 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     if (error || !data) return null;
     return {
-      entries: (data.entries as AppState["entries"]) ?? {},
-      fleet: { ...defaultFleet, ...(data.fleet as Partial<FleetSettings>) },
-      profile: { ...defaultProfile, ...(data.profile as Partial<Profile>) },
+      entries: (data.entries as unknown as AppState["entries"]) ?? {},
+      fleet: { ...defaultFleet, ...((data.fleet as unknown) as Partial<FleetSettings>) },
+      profile: { ...defaultProfile, ...((data.profile as unknown) as Partial<Profile>) },
     };
   }
 
