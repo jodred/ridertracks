@@ -147,9 +147,9 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
           .from("user_data")
           .upsert({
             user_id: userKey,
-            entries: state.entries,
-            fleet: state.fleet,
-            profile: state.profile,
+            entries: state.entries as any,
+            fleet: state.fleet as any,
+            profile: state.profile as any,
           })
           .then(({ error }) => {
             if (error) console.error("Sync failed:", error);
