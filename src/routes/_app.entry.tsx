@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Upload, FileText, Check } from "lucide-react";
+import { Plus, Trash2, Upload, FileText } from "lucide-react";
 import { z } from "zod";
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { useStore } from "../lib/trackuber/store";
@@ -46,7 +46,6 @@ function EntryPage() {
   const [gross, setGross] = useState(existing?.gross ?? 0);
   const [cash, setCash] = useState(existing?.cashCollected ?? 0);
   const [expenses, setExpenses] = useState<ExpenseItem[]>(existing?.expenses ?? []);
-  const [savedFlash, setSavedFlash] = useState(false);
   const isFirstRender = useRef(true);
 
   // Reset local state when date changes
@@ -83,7 +82,7 @@ function EntryPage() {
   const partnerPayment = (gross || 0) - (cash || 0) - ded.total - weeklyFee;
   const profit = (gross || 0) - ded.total - totalExpenses - weeklyFee;
 
-  // Autosave
+  // Autosave in background
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -100,9 +99,6 @@ function EntryPage() {
         })),
         updatedAt: Date.now(),
       });
-      setSavedFlash(true);
-      const t = setTimeout(() => setSavedFlash(false), 1500);
-      return () => clearTimeout(t);
     }, 400);
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -147,17 +143,6 @@ function EntryPage() {
             }}
             className="w-[160px] rounded-full"
           />
-          <div
-            aria-live="polite"
-            className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
-              savedFlash
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border bg-secondary text-muted-foreground"
-            }`}
-          >
-            <Check className="h-3.5 w-3.5" />
-            {savedFlash ? "Saved" : "Auto-save on"}
-          </div>
         </div>
       </div>
 
