@@ -143,17 +143,6 @@ function EntryPage() {
             }}
             className="w-[160px] rounded-full"
           />
-          <div
-            aria-live="polite"
-            className={`inline-flex h-9 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition-colors ${
-              savedFlash
-                ? "border-primary/30 bg-primary/10 text-primary"
-                : "border-border bg-secondary text-muted-foreground"
-            }`}
-          >
-            <Check className="h-3.5 w-3.5" />
-            {savedFlash ? "Saved" : "Auto-save on"}
-          </div>
         </div>
       </div>
 
