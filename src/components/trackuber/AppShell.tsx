@@ -113,10 +113,12 @@ export function AppShell({ children }: { children: ReactNode }) {
             <GlobalDateRangePicker />
             <button
               onClick={handleSignOut}
-              className="hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:inline-flex"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
               title="Sign out"
+              aria-label="Sign out"
             >
               <LogOut className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
         </header>
