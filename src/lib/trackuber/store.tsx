@@ -1,9 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import type { AppState, DateRange, DateRangePreset, DayEntry, Deduction, FleetSettings, Profile } from "./types";
 import { computeRange, todayISO } from "./calc";
+import { supabase } from "@/integrations/supabase/client";
 
-const STORAGE_KEY = "trackuber_v2_state";
-const RANGE_KEY = "trackuber_v2_range";
+const STORAGE_PREFIX = "trackuber_v2_state:";
+const RANGE_PREFIX = "trackuber_v2_range:";
+const GUEST_KEY = "guest";
 
 const defaultFleet: FleetSettings = {
   fleetName: "Eternis",
