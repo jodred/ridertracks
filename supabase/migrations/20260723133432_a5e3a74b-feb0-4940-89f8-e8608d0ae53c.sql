@@ -1,0 +1,1 @@
+REVOKE EXECUTE ON FUNCTION public.update_user_data_updated_at() FROM PUBLIC, anon, authenticated;
