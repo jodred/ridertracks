@@ -27,12 +27,12 @@ export const Route = createFileRoute("/")({
       {
         property: "og:description",
         content:
-          "The business dashboard built for Uber, Bolt, Free Now and taxi drivers. Real profit, real deductions, in one place.",
+          "RideTracks is the all-in-one business dashboard for taxi and rideshare drivers. Track earnings, expenses, fleet deductions, cash payments, and profit with complete clarity.",
       },
       { name: "twitter:title", content: "RideTracks — Track every ride. Know every złoty." },
       {
         name: "twitter:description",
-        content: "The business dashboard built for Uber, Bolt, Free Now and taxi drivers.",
+        content: "RideTracks is the all-in-one business dashboard for taxi and rideshare drivers. Track earnings, expenses, fleet deductions, cash payments, and profit with complete clarity.",
       },
     ],
   }),
