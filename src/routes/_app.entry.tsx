@@ -46,7 +46,6 @@ function EntryPage() {
   const [gross, setGross] = useState(existing?.gross ?? 0);
   const [cash, setCash] = useState(existing?.cashCollected ?? 0);
   const [expenses, setExpenses] = useState<ExpenseItem[]>(existing?.expenses ?? []);
-  const [savedFlash, setSavedFlash] = useState(false);
   const isFirstRender = useRef(true);
 
   // Reset local state when date changes
