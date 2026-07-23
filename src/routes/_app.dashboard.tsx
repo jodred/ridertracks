@@ -14,6 +14,7 @@ import {
   Pie,
   PieChart,
   Cell,
+  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
