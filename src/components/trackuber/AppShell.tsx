@@ -1,4 +1,4 @@
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   PlusCircle,
@@ -8,18 +8,20 @@ import {
   User,
   Car,
   ShieldCheck,
+  LogOut,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { GlobalDateRangePicker } from "./GlobalDateRangePicker";
 import { useStore } from "../../lib/trackuber/store";
+import { useAuth } from "../../lib/auth/AuthProvider";
 
-interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }
+interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; adminOnly?: boolean }
 const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/entry", label: "Daily Entry", icon: PlusCircle },
   { to: "/history", label: "History", icon: History },
   { to: "/reports", label: "Reports", icon: FileBarChart },
-  { to: "/admin", label: "Admin", icon: ShieldCheck },
+  { to: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/profile", label: "Profile", icon: User },
 ];
@@ -28,16 +30,26 @@ const mobileNavItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/entry", label: "Entry", icon: PlusCircle },
   { to: "/history", label: "History", icon: History },
-  { to: "/admin", label: "Admin", icon: ShieldCheck },
+  { to: "/admin", label: "Admin", icon: ShieldCheck, adminOnly: true },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { state } = useStore();
+  const { isAdmin, user, signOut } = useAuth();
+  const navigate = useNavigate();
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+
+  const visibleNav = navItems.filter((i) => !i.adminOnly || isAdmin);
+  const visibleMobile = mobileNavItems.filter((i) => !i.adminOnly || isAdmin);
+
+  async function handleSignOut() {
+    await signOut();
+    navigate({ to: "/auth", replace: true });
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -53,7 +65,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </Link>
         <nav className="flex flex-col gap-1">
-          {navItems.map((item) => {
+          {visibleNav.map((item) => {
             const active = isActive(item.to, item.exact);
             const Icon = item.icon;
             return (
@@ -73,9 +85,18 @@ export function AppShell({ children }: { children: ReactNode }) {
             );
           })}
         </nav>
-        <div className="mt-auto rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
-          <div className="font-medium text-foreground">{state.profile.driverName || "Driver"}</div>
-          <div className="truncate">{state.profile.email || "Add email in profile"}</div>
+        <div className="mt-auto space-y-2">
+          <div className="rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
+            <div className="font-medium text-foreground">{state.profile.driverName || "Driver"}</div>
+            <div className="truncate">{user?.email || state.profile.email || "—"}</div>
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent hover:text-foreground"
+          >
+            <LogOut className="h-4 w-4" />
+            Sign out
+          </button>
         </div>
       </aside>
 
@@ -88,8 +109,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <div className="text-sm font-semibold">RideTracks</div>
           </Link>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-2">
             <GlobalDateRangePicker />
+            <button
+              onClick={handleSignOut}
+              className="hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground lg:inline-flex"
+              title="Sign out"
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </button>
           </div>
         </header>
 
@@ -100,7 +128,7 @@ export function AppShell({ children }: { children: ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex items-stretch border-t border-border bg-background/95 backdrop-blur lg:hidden">
-        {mobileNavItems.map((item) => {
+        {visibleMobile.map((item) => {
           const active = isActive(item.to, item.exact);
           const Icon = item.icon;
           return (
