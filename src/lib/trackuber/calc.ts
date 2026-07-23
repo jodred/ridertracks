@@ -195,6 +195,12 @@ export interface DailySummary {
   partnerPayment: number;
 }
 
+function cashPortion(ex: { paymentMethod: string; amount: number; cashAmount?: number }): number {
+  if (ex.paymentMethod === "cash") return ex.amount;
+  if (ex.paymentMethod === "split") return ex.cashAmount ?? 0;
+  return 0;
+}
+
 /**
  * Cash wallet = cumulative cashCollected − cumulative cash-paid expenses, from all history up to range.to.
  */
@@ -206,9 +212,33 @@ export function computeCashWallet(entries: Record<string, DayEntry>, upToDate: s
   for (const e of sorted) {
     wallet += e.cashCollected;
     for (const ex of e.expenses) {
-      if (ex.paymentMethod === "cash") wallet -= ex.amount;
+      wallet -= cashPortion(ex);
     }
   }
+  return wallet;
+}
+
+/**
+ * Wallet available at the moment a specific expense on `date` is paid.
+ * Considers all prior days + today's cashCollected + prior expenses today.
+ */
+export function walletBeforeExpense(
+  entries: Record<string, DayEntry>,
+  date: string,
+  expensesToday: { paymentMethod: string; amount: number; cashAmount?: number }[],
+  currentIdx: number,
+  cashCollectedToday: number,
+): number {
+  let wallet = 0;
+  const prior = Object.values(entries)
+    .filter((e) => e.date < date)
+    .sort((a, b) => a.date.localeCompare(b.date));
+  for (const e of prior) {
+    wallet += e.cashCollected;
+    for (const ex of e.expenses) wallet -= cashPortion(ex);
+  }
+  wallet += cashCollectedToday || 0;
+  for (let i = 0; i < currentIdx; i++) wallet -= cashPortion(expensesToday[i]);
   return wallet;
 }
 
