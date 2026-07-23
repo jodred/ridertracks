@@ -7,6 +7,7 @@ import {
   Settings,
   User,
   Car,
+  ShieldCheck,
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { GlobalDateRangePicker } from "./GlobalDateRangePicker";
@@ -14,19 +15,20 @@ import { useStore } from "../../lib/trackuber/store";
 
 interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean }
 const navItems: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/entry", label: "Daily Entry", icon: PlusCircle },
   { to: "/history", label: "History", icon: History },
   { to: "/reports", label: "Reports", icon: FileBarChart },
+  { to: "/admin", label: "Admin", icon: ShieldCheck },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
 const mobileNavItems: NavItem[] = [
-  { to: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/entry", label: "Entry", icon: PlusCircle },
   { to: "/history", label: "History", icon: History },
-  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/admin", label: "Admin", icon: ShieldCheck },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
@@ -41,15 +43,15 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-sidebar px-4 py-6 lg:flex lg:flex-col">
-        <div className="mb-8 flex items-center gap-2 px-2">
+        <Link to="/" className="mb-8 flex items-center gap-2 px-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
             <Car className="h-5 w-5" />
           </div>
           <div>
-            <div className="text-sm font-semibold tracking-tight">TrackUber</div>
+            <div className="text-sm font-semibold tracking-tight">RideTracks</div>
             <div className="text-xs text-muted-foreground">{state.fleet.fleetName}</div>
           </div>
-        </div>
+        </Link>
         <nav className="flex flex-col gap-1">
           {navItems.map((item) => {
             const active = isActive(item.to, item.exact);
@@ -80,12 +82,12 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Main */}
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8">
-          <div className="flex items-center gap-2 lg:hidden">
+          <Link to="/" className="flex items-center gap-2 lg:hidden">
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
               <Car className="h-4 w-4" />
             </div>
-            <div className="text-sm font-semibold">TrackUber</div>
-          </div>
+            <div className="text-sm font-semibold">RideTracks</div>
+          </Link>
           <div className="ml-auto">
             <GlobalDateRangePicker />
           </div>

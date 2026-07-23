@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Calendar as CalendarIcon, ChevronDown } from "lucide-react";
+import type { DateRange as DayPickerRange } from "react-day-picker";
 import { useStore } from "../../lib/trackuber/store";
 import { Button } from "../ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
@@ -19,17 +20,42 @@ const presets: { key: DateRangePreset; label: string }[] = [
 export function GlobalDateRangePicker() {
   const { range, setPreset, setCustomRange } = useStore();
   const [open, setOpen] = useState(false);
-  const [tab, setTab] = useState<"presets" | "custom">("presets");
-  const [from, setFrom] = useState<Date | undefined>(parseISO(range.from));
-  const [to, setTo] = useState<Date | undefined>(parseISO(range.to));
+  const [tab, setTab] = useState<"presets" | "custom">(range.preset === "custom" ? "custom" : "presets");
+  const [selected, setSelected] = useState<DayPickerRange | undefined>({
+    from: parseISO(range.from),
+    to: parseISO(range.to),
+  });
+
+  useEffect(() => {
+    setSelected({ from: parseISO(range.from), to: parseISO(range.to) });
+  }, [range.from, range.to]);
 
   const label =
     range.preset === "custom"
-      ? `${formatDateShort(range.from)} → ${formatDateShort(range.to)}`
+      ? range.from === range.to
+        ? formatDateShort(range.from)
+        : `${formatDateShort(range.from)} → ${formatDateShort(range.to)}`
       : presets.find((p) => p.key === range.preset)?.label ?? "Range";
 
+  const applySelection = (sel: DayPickerRange | undefined) => {
+    if (!sel?.from) return;
+    const from = todayISO(sel.from);
+    const to = todayISO(sel.to ?? sel.from);
+    setCustomRange(from <= to ? from : to, from <= to ? to : from);
+  };
+
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        // On close, if user picked only "from" (no "to"), apply single-day range
+        if (!v && tab === "custom" && selected?.from && !selected.to) {
+          const iso = todayISO(selected.from);
+          setCustomRange(iso, iso);
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button variant="outline" className="gap-2 rounded-full border-border bg-card px-4 shadow-soft">
           <CalendarIcon className="h-4 w-4" />
@@ -37,7 +63,7 @@ export function GlobalDateRangePicker() {
           <ChevronDown className="h-4 w-4 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-[320px] p-0">
+      <PopoverContent align="end" className="w-auto p-0">
         <div className="flex border-b border-border">
           <button
             onClick={() => setTab("presets")}
@@ -53,7 +79,7 @@ export function GlobalDateRangePicker() {
           </button>
         </div>
         {tab === "presets" ? (
-          <div className="grid grid-cols-2 gap-1 p-2">
+          <div className="grid w-[280px] grid-cols-2 gap-1 p-2">
             {presets.map((p) => (
               <button
                 key={p.key}
@@ -73,23 +99,23 @@ export function GlobalDateRangePicker() {
           </div>
         ) : (
           <div className="p-3">
-            <div className="mb-2 text-xs font-medium text-muted-foreground">From</div>
-            <Calendar mode="single" selected={from} onSelect={setFrom} className="pointer-events-auto" />
-            <div className="mb-2 mt-3 text-xs font-medium text-muted-foreground">To</div>
-            <Calendar mode="single" selected={to} onSelect={setTo} className="pointer-events-auto" />
-            <Button
-              className="mt-3 w-full"
-              onClick={() => {
-                if (from && to) {
-                  const f = todayISO(from);
-                  const t = todayISO(to);
-                  setCustomRange(f <= t ? f : t, f <= t ? t : f);
-                  setOpen(false);
+            <Calendar
+              mode="range"
+              selected={selected}
+              onSelect={(sel) => {
+                setSelected(sel);
+                // Apply immediately whenever there is a from date; if both from+to, close.
+                if (sel?.from) {
+                  applySelection(sel);
+                  if (sel.to) setOpen(false);
                 }
               }}
-            >
-              Apply range
-            </Button>
+              numberOfMonths={1}
+              className="pointer-events-auto"
+            />
+            <p className="mt-2 px-1 text-[11px] text-muted-foreground">
+              Click a date twice for a single day, or two dates for a range.
+            </p>
           </div>
         )}
       </PopoverContent>
