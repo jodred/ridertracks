@@ -1,4 +1,4 @@
-export type PaymentMethod = "cash" | "card";
+export type PaymentMethod = "cash" | "card" | "split";
 
 export type DeductionType = "percent" | "fixed";
 export type DeductionApplyTo = "gross" | "net";
@@ -16,6 +16,8 @@ export interface ExpenseItem {
   category: string; // fuel | food | repairs | other | custom
   amount: number;
   paymentMethod: PaymentMethod;
+  cashAmount?: number; // for split: portion paid from wallet cash
+  cardAmount?: number; // for split: portion paid by card
   invoice?: string; // data URL
   note?: string;
 }

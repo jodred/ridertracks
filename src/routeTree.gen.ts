@@ -9,148 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as SettingsRouteImport } from './routes/settings'
-import { Route as ReportsRouteImport } from './routes/reports'
-import { Route as ProfileRouteImport } from './routes/profile'
-import { Route as HistoryRouteImport } from './routes/history'
-import { Route as EntryRouteImport } from './routes/entry'
-import { Route as IndexRouteImport } from './routes/index'
 
-const SettingsRoute = SettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ReportsRoute = ReportsRouteImport.update({
-  id: '/reports',
-  path: '/reports',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ProfileRoute = ProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const HistoryRoute = HistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EntryRoute = EntryRouteImport.update({
-  id: '/entry',
-  path: '/entry',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/entry': typeof EntryRoute
-  '/history': typeof HistoryRoute
-  '/profile': typeof ProfileRoute
-  '/reports': typeof ReportsRoute
-  '/settings': typeof SettingsRoute
-}
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/entry': typeof EntryRoute
-  '/history': typeof HistoryRoute
-  '/profile': typeof ProfileRoute
-  '/reports': typeof ReportsRoute
-  '/settings': typeof SettingsRoute
-}
+export interface FileRoutesByFullPath {}
+export interface FileRoutesByTo {}
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/entry': typeof EntryRoute
-  '/history': typeof HistoryRoute
-  '/profile': typeof ProfileRoute
-  '/reports': typeof ReportsRoute
-  '/settings': typeof SettingsRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/entry' | '/history' | '/profile' | '/reports' | '/settings'
+  fullPaths: never
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/entry' | '/history' | '/profile' | '/reports' | '/settings'
-  id:
-    | '__root__'
-    | '/'
-    | '/entry'
-    | '/history'
-    | '/profile'
-    | '/reports'
-    | '/settings'
+  to: never
+  id: '__root__'
   fileRoutesById: FileRoutesById
 }
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  EntryRoute: typeof EntryRoute
-  HistoryRoute: typeof HistoryRoute
-  ProfileRoute: typeof ProfileRoute
-  ReportsRoute: typeof ReportsRoute
-  SettingsRoute: typeof SettingsRoute
-}
+export interface RootRouteChildren {}
 
 declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/settings': {
-      id: '/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof SettingsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reports': {
-      id: '/reports'
-      path: '/reports'
-      fullPath: '/reports'
-      preLoaderRoute: typeof ReportsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/profile': {
-      id: '/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof ProfileRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/history': {
-      id: '/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof HistoryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/entry': {
-      id: '/entry'
-      path: '/entry'
-      fullPath: '/entry'
-      preLoaderRoute: typeof EntryRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
+  interface FileRoutesByPath {}
 }
 
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  EntryRoute: EntryRoute,
-  HistoryRoute: HistoryRoute,
-  ProfileRoute: ProfileRoute,
-  ReportsRoute: ReportsRoute,
-  SettingsRoute: SettingsRoute,
-}
+const rootRouteChildren: RootRouteChildren = {}
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
