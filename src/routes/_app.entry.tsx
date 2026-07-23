@@ -82,7 +82,7 @@ function EntryPage() {
   const partnerPayment = (gross || 0) - (cash || 0) - ded.total - weeklyFee;
   const profit = (gross || 0) - ded.total - totalExpenses - weeklyFee;
 
-  // Autosave
+  // Autosave in background
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
@@ -99,9 +99,6 @@ function EntryPage() {
         })),
         updatedAt: Date.now(),
       });
-      setSavedFlash(true);
-      const t = setTimeout(() => setSavedFlash(false), 1500);
-      return () => clearTimeout(t);
     }, 400);
     return () => clearTimeout(timeoutId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
