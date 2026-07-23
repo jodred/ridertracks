@@ -34,10 +34,10 @@ const defaultState: AppState = {
   profile: defaultProfile,
 };
 
-function loadState(): AppState {
+function loadState(userKey: string): AppState {
   if (typeof window === "undefined") return defaultState;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(STORAGE_PREFIX + userKey);
     if (!raw) return defaultState;
     const parsed = JSON.parse(raw) as AppState;
     return {
@@ -50,10 +50,10 @@ function loadState(): AppState {
   }
 }
 
-function loadRange(): DateRange {
+function loadRange(userKey: string): DateRange {
   if (typeof window === "undefined") return computeRange("thisMonth");
   try {
-    const raw = localStorage.getItem(RANGE_KEY);
+    const raw = localStorage.getItem(RANGE_PREFIX + userKey);
     if (raw) return JSON.parse(raw) as DateRange;
   } catch {}
   return computeRange("thisMonth");
@@ -82,25 +82,38 @@ interface StoreCtx {
 const Ctx = createContext<StoreCtx | null>(null);
 
 export function TrackUberProvider({ children }: { children: ReactNode }) {
+  const [userKey, setUserKey] = useState<string>(GUEST_KEY);
   const [state, setState] = useState<AppState>(defaultState);
   const [range, setRangeState] = useState<DateRange>(() => computeRange("thisMonth"));
   const [hydrated, setHydrated] = useState(false);
 
+  // Track auth user for per-user storage keying
   useEffect(() => {
-    setState(loadState());
-    setRangeState(loadRange());
-    setHydrated(true);
+    supabase.auth.getSession().then(({ data }) => {
+      const key = data.session?.user?.id ?? GUEST_KEY;
+      setUserKey(key);
+      setState(loadState(key));
+      setRangeState(loadRange(key));
+      setHydrated(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      const key = session?.user?.id ?? GUEST_KEY;
+      setUserKey(key);
+      setState(loadState(key));
+      setRangeState(loadRange(key));
+    });
+    return () => sub.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state, hydrated]);
+    localStorage.setItem(STORAGE_PREFIX + userKey, JSON.stringify(state));
+  }, [state, hydrated, userKey]);
 
   useEffect(() => {
     if (!hydrated) return;
-    localStorage.setItem(RANGE_KEY, JSON.stringify(range));
-  }, [range, hydrated]);
+    localStorage.setItem(RANGE_PREFIX + userKey, JSON.stringify(range));
+  }, [range, hydrated, userKey]);
 
   useEffect(() => {
     if (!hydrated) return;
