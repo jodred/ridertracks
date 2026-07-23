@@ -117,9 +117,9 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
       } else {
         await supabase.from("user_data").upsert({
           user_id: uid,
-          entries: local.entries,
-          fleet: local.fleet,
-          profile: local.profile,
+          entries: local.entries as any,
+          fleet: local.fleet as any,
+          profile: local.profile as any,
         });
       }
       remoteReadyRef.current = true;
