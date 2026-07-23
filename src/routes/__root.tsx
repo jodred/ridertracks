@@ -11,6 +11,9 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { TrackUberProvider } from "../lib/trackuber/store";
+import { AppShell } from "../components/trackuber/AppShell";
+import { Toaster } from "../components/ui/sonner";
 
 function NotFoundComponent() {
   return (
@@ -77,14 +80,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "Dashboard — TrackUber" },
+      { name: "description", content: "See your earnings, expected fleet payout, and real profit for any period." },
+      { name: "author", content: "TrackUber" },
+      { property: "og:title", content: "Dashboard — TrackUber" },
+      { property: "og:description", content: "See your earnings, expected fleet payout, and real profit for any period." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:title", content: "Dashboard — TrackUber" },
+      { name: "twitter:description", content: "See your earnings, expected fleet payout, and real profit for any period." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/77b1ebae-3026-4aa7-931e-a31613b6c414/id-preview-1c9e0a95--97144733-d602-4f50-9ab5-4c636d02ac84.lovable.app-1784796272539.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/77b1ebae-3026-4aa7-931e-a31613b6c414/id-preview-1c9e0a95--97144733-d602-4f50-9ab5-4c636d02ac84.lovable.app-1784796272539.png" },
     ],
     links: [
       {
@@ -119,8 +125,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <TrackUberProvider>
+        <AppShell>
+          <Outlet />
+        </AppShell>
+        <Toaster />
+      </TrackUberProvider>
     </QueryClientProvider>
   );
 }
