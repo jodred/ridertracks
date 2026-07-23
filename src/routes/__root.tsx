@@ -13,6 +13,7 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { TrackUberProvider } from "../lib/trackuber/store";
 import { Toaster } from "../components/ui/sonner";
+import { AuthProvider } from "../lib/auth/AuthProvider";
 
 function NotFoundComponent() {
   return (
@@ -119,10 +120,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TrackUberProvider>
-        <Outlet />
-        <Toaster />
-      </TrackUberProvider>
+      <AuthProvider>
+        <TrackUberProvider>
+          <Outlet />
+          <Toaster />
+        </TrackUberProvider>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
