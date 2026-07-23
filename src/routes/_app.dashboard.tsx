@@ -145,45 +145,25 @@ function Dashboard() {
 
       {/* Charts */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card className="rounded-2xl border-border shadow-card">
+        <Card className="rounded-2xl border-border shadow-card lg:col-span-2">
           <CardContent className="p-5">
             <div className="mb-4 flex items-center justify-between">
               <div>
-                <div className="text-xs font-medium text-muted-foreground">Revenue Trend</div>
+                <div className="text-xs font-medium text-muted-foreground">Revenue, Expenditure & Profit</div>
                 <div className="text-lg font-semibold tracking-tight">{formatMoney(summary.gross, currency)}</div>
               </div>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </div>
-            <div className="h-56">
+            <div className="h-72">
               <ResponsiveContainer>
-                <LineChart data={revenueSeries} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
+                <LineChart data={metricsSeries} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
                   <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
                   <XAxis dataKey="date" fontSize={11} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
                   <YAxis fontSize={11} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
                   <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
                   <Line type="monotone" dataKey="Revenue" stroke="var(--chart-1)" strokeWidth={2.5} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-2xl border-border shadow-card">
-          <CardContent className="p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <div>
-                <div className="text-xs font-medium text-muted-foreground">Profit Trend</div>
-                <div className="text-lg font-semibold tracking-tight">{formatMoney(summary.netProfit, currency)}</div>
-              </div>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </div>
-            <div className="h-56">
-              <ResponsiveContainer>
-                <LineChart data={profitSeries} margin={{ left: -10, right: 8, top: 8, bottom: 0 }}>
-                  <CartesianGrid stroke="var(--border)" strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="date" fontSize={11} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-                  <YAxis fontSize={11} stroke="var(--muted-foreground)" tickLine={false} axisLine={false} />
-                  <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
+                  <Line type="monotone" dataKey="Expenditure" stroke="#ef4444" strokeWidth={2.5} dot={false} />
                   <Line type="monotone" dataKey="Profit" stroke="var(--chart-2)" strokeWidth={2.5} dot={false} />
                 </LineChart>
               </ResponsiveContainer>
@@ -202,8 +182,8 @@ function Dashboard() {
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie data={expensePieRaw} dataKey="value" nameKey="name" innerRadius={45} outerRadius={80} paddingAngle={2}>
-                        {expensePieRaw.map((_, i) => (
-                          <Cell key={i} fill={chartColors[i % chartColors.length]} />
+                        {expensePieRaw.map((s, i) => (
+                          <Cell key={i} fill={expenseColorFor(s.name, i)} />
                         ))}
                       </Pie>
                       <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
@@ -214,7 +194,7 @@ function Dashboard() {
                   {expensePieRaw.map((s, i) => (
                     <div key={s.name} className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: chartColors[i % chartColors.length] }} />
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: expenseColorFor(s.name, i) }} />
                         <span className="text-muted-foreground">{s.name}</span>
                       </div>
                       <span className="font-medium">{formatMoney(s.value, currency)}</span>
@@ -237,8 +217,8 @@ function Dashboard() {
                   <ResponsiveContainer>
                     <PieChart>
                       <Pie data={revenuePie} dataKey="value" nameKey="name" innerRadius={45} outerRadius={80} paddingAngle={2}>
-                        {revenuePie.map((_, i) => (
-                          <Cell key={i} fill={chartColors[i % chartColors.length]} />
+                        {revenuePie.map((s, i) => (
+                          <Cell key={i} fill={revenueColors[s.name] ?? otherExpenseColors[i]} />
                         ))}
                       </Pie>
                       <Tooltip contentStyle={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 12 }} />
@@ -249,7 +229,7 @@ function Dashboard() {
                   {revenuePie.map((s, i) => (
                     <div key={s.name} className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: chartColors[i % chartColors.length] }} />
+                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: revenueColors[s.name] ?? otherExpenseColors[i] }} />
                         <span className="text-muted-foreground">{s.name}</span>
                       </div>
                       <span className="font-medium">{formatMoney(s.value, currency)}</span>
@@ -261,6 +241,7 @@ function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
 
       {/* Daily table */}
       <Card className="rounded-2xl border-border shadow-card">
