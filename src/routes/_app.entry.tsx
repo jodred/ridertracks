@@ -257,9 +257,43 @@ function EntryPage() {
           <SummaryRow label="Net Profit" value={formatMoney(profit, currency)} accent />
         </CardContent>
       </Card>
+
+      <Dialog open={methodDialogFor !== null} onOpenChange={(o) => !o && setMethodDialogFor(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>How was this paid?</DialogTitle>
+            <DialogDescription>Select the payment method for this expense.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {([
+              { v: "cash", label: "Cash", Icon: Banknote },
+              { v: "card", label: "Card", Icon: CreditCard },
+              { v: "split", label: "Cash + Card", Icon: Wallet },
+            ] as { v: PaymentMethod; label: string; Icon: typeof Banknote }[]).map(({ v, label, Icon }) => {
+              const active = methodDialogFor && expenses.find((x) => x.id === methodDialogFor)?.paymentMethod === v;
+              return (
+                <Button
+                  key={v}
+                  type="button"
+                  variant={active ? "default" : "outline"}
+                  className="h-20 flex-col gap-1 rounded-xl"
+                  onClick={() => {
+                    if (methodDialogFor) updateExpense(methodDialogFor, { paymentMethod: v });
+                    setMethodDialogFor(null);
+                  }}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-sm">{label}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function SummaryRow({ label, value, muted, strong, accent }: { label: string; value: string; muted?: boolean; strong?: boolean; accent?: boolean }) {
   return (
