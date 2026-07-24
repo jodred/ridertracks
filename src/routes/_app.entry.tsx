@@ -200,14 +200,17 @@ function EntryPage() {
                         </SelectContent>
                       </Select>
                       <Input type="number" inputMode="decimal" step="0.01" value={e.amount} onChange={(ev) => updateExpense(e.id, { amount: Number(ev.target.value) })} placeholder="0.00" className="rounded-lg" />
-                      <Select value={e.paymentMethod} onValueChange={(v) => updateExpense(e.id, { paymentMethod: v as PaymentMethod })}>
-                        <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="card">Card</SelectItem>
-                          <SelectItem value="split">Cash + Card</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setMethodDialogFor(e.id)}
+                        className="h-9 justify-start rounded-lg font-normal"
+                      >
+                        {e.paymentMethod === "cash" && <><Banknote className="mr-1.5 h-4 w-4" />Cash</>}
+                        {e.paymentMethod === "card" && <><CreditCard className="mr-1.5 h-4 w-4" />Card</>}
+                        {e.paymentMethod === "split" && <><Wallet className="mr-1.5 h-4 w-4" />Cash + Card</>}
+                      </Button>
+
                       <label className="inline-flex h-9 cursor-pointer items-center justify-center gap-1 rounded-lg border border-border px-3 text-xs text-muted-foreground hover:bg-accent">
                         {e.invoice ? <FileText className="h-4 w-4 text-primary" /> : <Upload className="h-4 w-4" />}
                         <span>{e.invoice ? "Attached" : "Invoice"}</span>
