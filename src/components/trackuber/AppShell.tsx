@@ -36,7 +36,7 @@ const mobileNavItems: NavItem[] = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { state } = useStore();
+  const { state, workspace, setWorkspace } = useStore();
   const { isAdmin, user, signOut } = useAuth();
   const navigate = useNavigate();
 
@@ -50,6 +50,27 @@ export function AppShell({ children }: { children: ReactNode }) {
     await signOut();
     navigate({ to: "/auth", replace: true });
   }
+
+  const workspaceToggle = (
+    <div className="inline-flex items-center rounded-full border border-border bg-secondary p-0.5 text-xs font-medium">
+      {(["rides", "foods"] as const).map((ws) => (
+        <button
+          key={ws}
+          onClick={() => setWorkspace(ws)}
+          className={[
+            "rounded-full px-3 py-1 transition-colors",
+            workspace === ws
+              ? "bg-primary text-primary-foreground shadow-soft"
+              : "text-muted-foreground hover:text-foreground",
+          ].join(" ")}
+          aria-pressed={workspace === ws}
+        >
+          {ws === "rides" ? "Rides" : "Foods"}
+        </button>
+      ))}
+    </div>
+  );
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -110,6 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="text-sm font-semibold">RideTracks</div>
           </Link>
           <div className="ml-auto flex items-center gap-2">
+            {workspaceToggle}
             <GlobalDateRangePicker />
             <button
               onClick={handleSignOut}
@@ -121,6 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
+
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:pb-10">
