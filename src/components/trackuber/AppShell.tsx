@@ -131,6 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="text-sm font-semibold">RideTracks</div>
           </Link>
           <div className="ml-auto flex items-center gap-2">
+            {workspaceToggle}
             <GlobalDateRangePicker />
             <button
               onClick={handleSignOut}
@@ -142,6 +143,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
+
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:pb-10">
