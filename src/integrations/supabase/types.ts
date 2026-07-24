@@ -46,6 +46,7 @@ export type Database = {
           profile: Json
           updated_at: string
           user_id: string
+          workspace: string
         }
         Insert: {
           created_at?: string
@@ -54,6 +55,7 @@ export type Database = {
           profile?: Json
           updated_at?: string
           user_id: string
+          workspace?: string
         }
         Update: {
           created_at?: string
@@ -62,6 +64,7 @@ export type Database = {
           profile?: Json
           updated_at?: string
           user_id?: string
+          workspace?: string
         }
         Relationships: []
       }
