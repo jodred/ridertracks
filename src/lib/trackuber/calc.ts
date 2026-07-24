@@ -271,7 +271,7 @@ export function summarize(state: AppState, range: DateRange): PeriodSummary {
       date: e.date,
       gross: e.gross,
       cash: e.cashCollected,
-      expenses: dayExpenses + feeToday,
+      expenses: dayExpenses,
       profit: dayProfit,
       partnerPayment: dayPartner,
     });
