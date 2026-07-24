@@ -95,6 +95,7 @@ function Dashboard() {
   const expensePieRaw = [
     ...Object.entries(summary.expensesByCategory).map(([name, value]) => ({ name, value })),
   ];
+  if (summary.fleetDeductionsTotal > 0) expensePieRaw.push({ name: "Fleet Commission", value: summary.fleetDeductionsTotal });
   if (summary.weeklyFees > 0) expensePieRaw.push({ name: "Weekly Fee", value: summary.weeklyFees });
 
   const revenuePie = [
@@ -104,7 +105,10 @@ function Dashboard() {
 
   const otherExpenseColors = ["var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)", "var(--chart-1)"];
   const expenseColorFor = (name: string, idx: number) => {
-    if (name.toLowerCase() === "fuel") return "#ef4444";
+    const key = name.toLowerCase();
+    if (key === "fuel") return "#ef4444";
+    if (key === "fleet commission") return "#f59e0b";
+    if (key === "weekly fee") return "#8b5cf6";
     return otherExpenseColors[idx % otherExpenseColors.length];
   };
   const revenueColors: Record<string, string> = { Cashless: "var(--chart-1)", Cash: "var(--chart-3)" };
@@ -126,18 +130,25 @@ function Dashboard() {
       </div>
 
       {/* KPI cards */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
         <Kpi label="Gross Revenue" value={formatMoney(summary.gross, currency)} icon={Coins} hint={`${summary.daily.length} day${summary.daily.length === 1 ? "" : "s"} tracked`} />
+        <Kpi
+          label="Amount Taken by Fleet"
+          value={formatMoney(summary.fleetTake, currency)}
+          icon={Receipt}
+          hint={summary.weeklyFeeCount ? `Commission + ${summary.weeklyFeeCount} weekly fee${summary.weeklyFeeCount > 1 ? "s" : ""}` : "Commission only"}
+        />
         <Kpi
           label="Expected Partner Payment"
           value={formatMoney(summary.expectedPartnerPayment, currency)}
           icon={Wallet}
-          hint="Gross − Cash − Fleet deductions"
+          hint="Gross − Cash − Fleet"
           badge="Expected"
         />
         <Kpi label="Cash Wallet" value={formatMoney(summary.cashWallet, currency)} icon={Wallet} hint="Passenger cash on hand" />
-        <Kpi label="Total Expenses" value={formatMoney(summary.totalExpenses, currency)} icon={Receipt} hint={summary.weeklyFeeCount ? `Incl. ${summary.weeklyFeeCount} weekly fee${summary.weeklyFeeCount > 1 ? "s" : ""}` : "Operating expenses"} />
+        <Kpi label="Total Expenses" value={formatMoney(summary.totalExpenses, currency)} icon={Receipt} hint="Operating expenses" />
       </div>
+
 
       <div className="grid grid-cols-1 gap-4">
         <Kpi label="Net Profit" value={formatMoney(summary.netProfit, currency)} icon={Sparkles} hint="Gross − Fleet deductions − Expenses" accent large />
