@@ -119,7 +119,14 @@ function EntryPage() {
 
   const updateExpense = (id: string, patch: Partial<ExpenseItem>) => {
     setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    if (patch.amount !== undefined) {
+      const prevAmt = prevAmountsRef.current[id] ?? 0;
+      const nextAmt = Number(patch.amount) || 0;
+      if (prevAmt <= 0 && nextAmt > 0) setMethodDialogFor(id);
+      prevAmountsRef.current[id] = nextAmt;
+    }
   };
+
 
   const removeExpense = (id: string) => setExpenses((prev) => prev.filter((e) => e.id !== id));
 
