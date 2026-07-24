@@ -176,13 +176,14 @@ export interface PeriodSummary {
   fleetDeductionsTotal: number;
   weeklyFees: number;
   weeklyFeeCount: number;
+  fleetTake: number; // fleetDeductionsTotal + weeklyFees
   operatingExpenses: number;
   expensesByCategory: Record<string, number>;
   cardRevenue: number;
-  totalExpenses: number; // operating + weekly fee
+  totalExpenses: number; // operating only (fleet fees excluded)
   expectedPartnerPayment: number;
   netProfit: number;
-  cashWallet: number; // running wallet through end of range
+  cashWallet: number;
   daily: DailySummary[];
 }
 
