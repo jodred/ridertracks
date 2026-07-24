@@ -294,9 +294,10 @@ export function summarize(state: AppState, range: DateRange): PeriodSummary {
   const fleetDeductionsTotal = fleetDeductions.reduce((s, r) => s + r.amount, 0);
 
   const cardRevenue = gross - cashCollected;
-  const totalExpenses = operatingExpenses + weeklyFees;
+  const totalExpenses = operatingExpenses;
+  const fleetTake = fleetDeductionsTotal + weeklyFees;
   const expectedPartnerPayment = gross - cashCollected - fleetDeductionsTotal - weeklyFees;
-  const netProfit = gross - fleetDeductionsTotal - totalExpenses;
+  const netProfit = gross - fleetDeductionsTotal - weeklyFees - operatingExpenses;
   const cashWallet = computeCashWallet(state.entries, range.to);
 
   return {
@@ -306,6 +307,7 @@ export function summarize(state: AppState, range: DateRange): PeriodSummary {
     fleetDeductionsTotal,
     weeklyFees,
     weeklyFeeCount,
+    fleetTake,
     operatingExpenses,
     expensesByCategory,
     cardRevenue,
