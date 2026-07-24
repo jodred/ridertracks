@@ -17,6 +17,9 @@ import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { Button } from "../components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "../components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../components/ui/dialog";
+import { Banknote, CreditCard, Wallet } from "lucide-react";
+
 
 const searchSchema = z.object({
   date: fallback(z.string(), todayISO()).default(todayISO()),
@@ -46,7 +49,10 @@ function EntryPage() {
   const [gross, setGross] = useState(existing?.gross ?? 0);
   const [cash, setCash] = useState(existing?.cashCollected ?? 0);
   const [expenses, setExpenses] = useState<ExpenseItem[]>(existing?.expenses ?? []);
+  const [methodDialogFor, setMethodDialogFor] = useState<string | null>(null);
+  const prevAmountsRef = useRef<Record<string, number>>({});
   const isFirstRender = useRef(true);
+
 
   // Reset local state when date changes
   useEffect(() => {
@@ -113,7 +119,14 @@ function EntryPage() {
 
   const updateExpense = (id: string, patch: Partial<ExpenseItem>) => {
     setExpenses((prev) => prev.map((e) => (e.id === id ? { ...e, ...patch } : e)));
+    if (patch.amount !== undefined) {
+      const prevAmt = prevAmountsRef.current[id] ?? 0;
+      const nextAmt = Number(patch.amount) || 0;
+      if (prevAmt <= 0 && nextAmt > 0) setMethodDialogFor(id);
+      prevAmountsRef.current[id] = nextAmt;
+    }
   };
+
 
   const removeExpense = (id: string) => setExpenses((prev) => prev.filter((e) => e.id !== id));
 
@@ -187,14 +200,17 @@ function EntryPage() {
                         </SelectContent>
                       </Select>
                       <Input type="number" inputMode="decimal" step="0.01" value={e.amount} onChange={(ev) => updateExpense(e.id, { amount: Number(ev.target.value) })} placeholder="0.00" className="rounded-lg" />
-                      <Select value={e.paymentMethod} onValueChange={(v) => updateExpense(e.id, { paymentMethod: v as PaymentMethod })}>
-                        <SelectTrigger className="rounded-lg"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="cash">Cash</SelectItem>
-                          <SelectItem value="card">Card</SelectItem>
-                          <SelectItem value="split">Cash + Card</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setMethodDialogFor(e.id)}
+                        className="h-9 justify-start rounded-lg font-normal"
+                      >
+                        {e.paymentMethod === "cash" && <><Banknote className="mr-1.5 h-4 w-4" />Cash</>}
+                        {e.paymentMethod === "card" && <><CreditCard className="mr-1.5 h-4 w-4" />Card</>}
+                        {e.paymentMethod === "split" && <><Wallet className="mr-1.5 h-4 w-4" />Cash + Card</>}
+                      </Button>
+
                       <label className="inline-flex h-9 cursor-pointer items-center justify-center gap-1 rounded-lg border border-border px-3 text-xs text-muted-foreground hover:bg-accent">
                         {e.invoice ? <FileText className="h-4 w-4 text-primary" /> : <Upload className="h-4 w-4" />}
                         <span>{e.invoice ? "Attached" : "Invoice"}</span>
@@ -241,9 +257,43 @@ function EntryPage() {
           <SummaryRow label="Net Profit" value={formatMoney(profit, currency)} accent />
         </CardContent>
       </Card>
+
+      <Dialog open={methodDialogFor !== null} onOpenChange={(o) => !o && setMethodDialogFor(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>How was this paid?</DialogTitle>
+            <DialogDescription>Select the payment method for this expense.</DialogDescription>
+          </DialogHeader>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+            {([
+              { v: "cash", label: "Cash", Icon: Banknote },
+              { v: "card", label: "Card", Icon: CreditCard },
+              { v: "split", label: "Cash + Card", Icon: Wallet },
+            ] as { v: PaymentMethod; label: string; Icon: typeof Banknote }[]).map(({ v, label, Icon }) => {
+              const active = methodDialogFor && expenses.find((x) => x.id === methodDialogFor)?.paymentMethod === v;
+              return (
+                <Button
+                  key={v}
+                  type="button"
+                  variant={active ? "default" : "outline"}
+                  className="h-20 flex-col gap-1 rounded-xl"
+                  onClick={() => {
+                    if (methodDialogFor) updateExpense(methodDialogFor, { paymentMethod: v });
+                    setMethodDialogFor(null);
+                  }}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span className="text-sm">{label}</span>
+                </Button>
+              );
+            })}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function SummaryRow({ label, value, muted, strong, accent }: { label: string; value: string; muted?: boolean; strong?: boolean; accent?: boolean }) {
   return (
