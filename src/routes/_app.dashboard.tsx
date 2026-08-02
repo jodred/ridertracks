@@ -283,7 +283,7 @@ function Dashboard() {
                           {formatDateShort(d.date)}
                         </Link>
                       </td>
-                      <td className="py-3 text-right tabular-nums">{formatMoney(d.gross, currency)}</td>
+                      <td className="py-3 text-right tabular-nums">{formatMoney(d.netGross, currency)}</td>
                       <td className="py-3 text-right tabular-nums">{formatMoney(d.cash, currency)}</td>
                       <td className="py-3 text-right tabular-nums">{formatMoney(d.expenses, currency)}</td>
                       <td className={`py-3 text-right font-medium tabular-nums ${d.profit >= 0 ? "text-primary" : "text-destructive"}`}>{formatMoney(d.profit, currency)}</td>
