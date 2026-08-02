@@ -170,7 +170,8 @@ export function weeklyFeeDatesInRange(
 }
 
 export interface PeriodSummary {
-  gross: number;
+  gross: number; // raw gross entered by user
+  netGross: number; // gross minus fleet deductions (commission)
   cashCollected: number;
   fleetDeductions: DeductionResult[];
   fleetDeductionsTotal: number;
@@ -189,7 +190,8 @@ export interface PeriodSummary {
 
 export interface DailySummary {
   date: string;
-  gross: number;
+  gross: number; // raw gross entered by user
+  netGross: number; // gross minus fleet deductions
   cash: number;
   expenses: number;
   profit: number;
