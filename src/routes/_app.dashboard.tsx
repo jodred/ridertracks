@@ -87,7 +87,7 @@ function Dashboard() {
 
   const metricsSeries = summary.daily.map((d) => ({
     date: formatDateShort(d.date),
-    Revenue: d.gross,
+    Revenue: d.netGross,
     Expenditure: d.expenses,
     Profit: d.profit,
   }));
