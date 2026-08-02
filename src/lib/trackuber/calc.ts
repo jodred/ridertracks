@@ -170,7 +170,8 @@ export function weeklyFeeDatesInRange(
 }
 
 export interface PeriodSummary {
-  gross: number;
+  gross: number; // raw gross entered by user
+  netGross: number; // gross minus fleet deductions (commission)
   cashCollected: number;
   fleetDeductions: DeductionResult[];
   fleetDeductionsTotal: number;
@@ -189,7 +190,8 @@ export interface PeriodSummary {
 
 export interface DailySummary {
   date: string;
-  gross: number;
+  gross: number; // raw gross entered by user
+  netGross: number; // gross minus fleet deductions
   cash: number;
   expenses: number;
   profit: number;
@@ -249,6 +251,7 @@ export function summarize(state: AppState, range: DateRange): PeriodSummary {
   const weeklyFee = state.fleet.weeklyAppFee;
 
   let gross = 0;
+  let netGross = 0;
   let cashCollected = 0;
   let operatingExpenses = 0;
   const expensesByCategory: Record<string, number> = {};
@@ -265,11 +268,14 @@ export function summarize(state: AppState, range: DateRange): PeriodSummary {
     }
     const feeToday = feeDates.has(e.date) ? weeklyFee : 0;
     const dayDed = applyDeductions(e.gross, state.fleet.deductions);
+    const dayNetGross = e.gross - dayDed.total;
+    netGross += dayNetGross;
     const dayProfit = e.gross - dayDed.total - dayExpenses - feeToday;
     const dayPartner = e.gross - e.cashCollected - dayDed.total - feeToday;
     daily.push({
       date: e.date,
       gross: e.gross,
+      netGross: dayNetGross,
       cash: e.cashCollected,
       expenses: dayExpenses,
       profit: dayProfit,
@@ -302,6 +308,7 @@ export function summarize(state: AppState, range: DateRange): PeriodSummary {
 
   return {
     gross,
+    netGross,
     cashCollected,
     fleetDeductions,
     fleetDeductionsTotal,

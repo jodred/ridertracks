@@ -87,7 +87,7 @@ function Dashboard() {
 
   const metricsSeries = summary.daily.map((d) => ({
     date: formatDateShort(d.date),
-    Revenue: d.gross,
+    Revenue: d.netGross,
     Expenditure: d.expenses,
     Profit: d.profit,
   }));
@@ -131,7 +131,7 @@ function Dashboard() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <Kpi label="Gross Revenue" value={formatMoney(summary.gross, currency)} icon={Coins} hint={`${summary.daily.length} day${summary.daily.length === 1 ? "" : "s"} tracked`} />
+        <Kpi label="Gross Revenue" value={formatMoney(summary.netGross, currency)} icon={Coins} hint="After fleet commission" />
         <Kpi
           label="Amount Taken by Fleet"
           value={formatMoney(summary.fleetTake, currency)}
@@ -283,7 +283,7 @@ function Dashboard() {
                           {formatDateShort(d.date)}
                         </Link>
                       </td>
-                      <td className="py-3 text-right tabular-nums">{formatMoney(d.gross, currency)}</td>
+                      <td className="py-3 text-right tabular-nums">{formatMoney(d.netGross, currency)}</td>
                       <td className="py-3 text-right tabular-nums">{formatMoney(d.cash, currency)}</td>
                       <td className="py-3 text-right tabular-nums">{formatMoney(d.expenses, currency)}</td>
                       <td className={`py-3 text-right font-medium tabular-nums ${d.profit >= 0 ? "text-primary" : "text-destructive"}`}>{formatMoney(d.profit, currency)}</td>
