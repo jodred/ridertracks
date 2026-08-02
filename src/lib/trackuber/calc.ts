@@ -308,6 +308,7 @@ export function summarize(state: AppState, range: DateRange): PeriodSummary {
 
   return {
     gross,
+    netGross,
     cashCollected,
     fleetDeductions,
     fleetDeductionsTotal,
