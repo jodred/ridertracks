@@ -131,7 +131,7 @@ function Dashboard() {
 
       {/* KPI cards */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
-        <Kpi label="Gross Revenue" value={formatMoney(summary.gross, currency)} icon={Coins} hint={`${summary.daily.length} day${summary.daily.length === 1 ? "" : "s"} tracked`} />
+        <Kpi label="Gross Revenue" value={formatMoney(summary.netGross, currency)} icon={Coins} hint="After fleet commission" />
         <Kpi
           label="Amount Taken by Fleet"
           value={formatMoney(summary.fleetTake, currency)}
