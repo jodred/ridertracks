@@ -14,8 +14,83 @@ export type Database = {
   }
   public: {
     Tables: {
+      fleet_driver_entries: {
+        Row: {
+          cash: number
+          created_at: string
+          date: string
+          driver_id: string
+          fleet_user_id: string
+          gross: number
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          cash?: number
+          created_at?: string
+          date: string
+          driver_id: string
+          fleet_user_id: string
+          gross?: number
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          cash?: number
+          created_at?: string
+          date?: string
+          driver_id?: string
+          fleet_user_id?: string
+          gross?: number
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fleet_driver_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "fleet_drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fleet_drivers: {
+        Row: {
+          app_fee_override: number | null
+          code: string
+          created_at: string
+          email: string
+          fleet_user_id: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          app_fee_override?: number | null
+          code: string
+          created_at?: string
+          email: string
+          fleet_user_id: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          app_fee_override?: number | null
+          code?: string
+          created_at?: string
+          email?: string
+          fleet_user_id?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
+          account_type: string
           created_at: string
           display_name: string | null
           email: string | null
@@ -23,6 +98,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          account_type?: string
           created_at?: string
           display_name?: string | null
           email?: string | null
@@ -30,6 +106,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          account_type?: string
           created_at?: string
           display_name?: string | null
           email?: string | null
