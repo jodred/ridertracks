@@ -21,6 +21,7 @@ import { Route as AppHistoryRouteImport } from './routes/_app.history'
 import { Route as AppEntryRouteImport } from './routes/_app.entry'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAdminRouteImport } from './routes/_app.admin'
+import { Route as AppFleetIndexRouteImport } from './routes/_app.fleet.index'
 import { Route as AppAdminRiderIdRouteImport } from './routes/_app.admin.$riderId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -82,6 +83,11 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFleetIndexRoute = AppFleetIndexRouteImport.update({
+  id: '/fleet/',
+  path: '/fleet/',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminRiderIdRoute = AppAdminRiderIdRouteImport.update({
   id: '/$riderId',
   path: '/$riderId',
@@ -101,6 +107,7 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/admin/$riderId': typeof AppAdminRiderIdRoute
+  '/fleet/': typeof AppFleetIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -115,6 +122,7 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/admin/$riderId': typeof AppAdminRiderIdRoute
+  '/fleet': typeof AppFleetIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -131,6 +139,7 @@ export interface FileRoutesById {
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/admin/$riderId': typeof AppAdminRiderIdRoute
+  '/_app/fleet/': typeof AppFleetIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,6 +156,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/admin/$riderId'
+    | '/fleet/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -161,6 +171,7 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/admin/$riderId'
+    | '/fleet'
   id:
     | '__root__'
     | '/'
@@ -176,6 +187,7 @@ export interface FileRouteTypes {
     | '/_app/reports'
     | '/_app/settings'
     | '/_app/admin/$riderId'
+    | '/_app/fleet/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -272,6 +284,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/fleet/': {
+      id: '/_app/fleet/'
+      path: '/fleet'
+      fullPath: '/fleet/'
+      preLoaderRoute: typeof AppFleetIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/$riderId': {
       id: '/_app/admin/$riderId'
       path: '/$riderId'
@@ -302,6 +321,7 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppFleetIndexRoute: typeof AppFleetIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -312,6 +332,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppFleetIndexRoute: AppFleetIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
@@ -326,13 +347,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
