@@ -21,6 +21,9 @@ import { Route as AppHistoryRouteImport } from './routes/_app.history'
 import { Route as AppEntryRouteImport } from './routes/_app.entry'
 import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
 import { Route as AppAdminRouteImport } from './routes/_app.admin'
+import { Route as AppFleetIndexRouteImport } from './routes/_app.fleet.index'
+import { Route as AppFleetDriversRouteImport } from './routes/_app.fleet.drivers'
+import { Route as AppFleetAddDriverRouteImport } from './routes/_app.fleet.add-driver'
 import { Route as AppAdminRiderIdRouteImport } from './routes/_app.admin.$riderId'
 
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -82,6 +85,21 @@ const AppAdminRoute = AppAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFleetIndexRoute = AppFleetIndexRouteImport.update({
+  id: '/fleet/',
+  path: '/fleet/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFleetDriversRoute = AppFleetDriversRouteImport.update({
+  id: '/fleet/drivers',
+  path: '/fleet/drivers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFleetAddDriverRoute = AppFleetAddDriverRouteImport.update({
+  id: '/fleet/add-driver',
+  path: '/fleet/add-driver',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminRiderIdRoute = AppAdminRiderIdRouteImport.update({
   id: '/$riderId',
   path: '/$riderId',
@@ -101,6 +119,9 @@ export interface FileRoutesByFullPath {
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/admin/$riderId': typeof AppAdminRiderIdRoute
+  '/fleet/add-driver': typeof AppFleetAddDriverRoute
+  '/fleet/drivers': typeof AppFleetDriversRoute
+  '/fleet/': typeof AppFleetIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -115,6 +136,9 @@ export interface FileRoutesByTo {
   '/reports': typeof AppReportsRoute
   '/settings': typeof AppSettingsRoute
   '/admin/$riderId': typeof AppAdminRiderIdRoute
+  '/fleet/add-driver': typeof AppFleetAddDriverRoute
+  '/fleet/drivers': typeof AppFleetDriversRoute
+  '/fleet': typeof AppFleetIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -131,6 +155,9 @@ export interface FileRoutesById {
   '/_app/reports': typeof AppReportsRoute
   '/_app/settings': typeof AppSettingsRoute
   '/_app/admin/$riderId': typeof AppAdminRiderIdRoute
+  '/_app/fleet/add-driver': typeof AppFleetAddDriverRoute
+  '/_app/fleet/drivers': typeof AppFleetDriversRoute
+  '/_app/fleet/': typeof AppFleetIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -147,6 +174,9 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/admin/$riderId'
+    | '/fleet/add-driver'
+    | '/fleet/drivers'
+    | '/fleet/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -161,6 +191,9 @@ export interface FileRouteTypes {
     | '/reports'
     | '/settings'
     | '/admin/$riderId'
+    | '/fleet/add-driver'
+    | '/fleet/drivers'
+    | '/fleet'
   id:
     | '__root__'
     | '/'
@@ -176,6 +209,9 @@ export interface FileRouteTypes {
     | '/_app/reports'
     | '/_app/settings'
     | '/_app/admin/$riderId'
+    | '/_app/fleet/add-driver'
+    | '/_app/fleet/drivers'
+    | '/_app/fleet/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -272,6 +308,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/fleet/': {
+      id: '/_app/fleet/'
+      path: '/fleet'
+      fullPath: '/fleet/'
+      preLoaderRoute: typeof AppFleetIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/fleet/drivers': {
+      id: '/_app/fleet/drivers'
+      path: '/fleet/drivers'
+      fullPath: '/fleet/drivers'
+      preLoaderRoute: typeof AppFleetDriversRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/fleet/add-driver': {
+      id: '/_app/fleet/add-driver'
+      path: '/fleet/add-driver'
+      fullPath: '/fleet/add-driver'
+      preLoaderRoute: typeof AppFleetAddDriverRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/$riderId': {
       id: '/_app/admin/$riderId'
       path: '/$riderId'
@@ -302,6 +359,9 @@ interface AppRouteChildren {
   AppProfileRoute: typeof AppProfileRoute
   AppReportsRoute: typeof AppReportsRoute
   AppSettingsRoute: typeof AppSettingsRoute
+  AppFleetAddDriverRoute: typeof AppFleetAddDriverRoute
+  AppFleetDriversRoute: typeof AppFleetDriversRoute
+  AppFleetIndexRoute: typeof AppFleetIndexRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -312,6 +372,9 @@ const AppRouteChildren: AppRouteChildren = {
   AppProfileRoute: AppProfileRoute,
   AppReportsRoute: AppReportsRoute,
   AppSettingsRoute: AppSettingsRoute,
+  AppFleetAddDriverRoute: AppFleetAddDriverRoute,
+  AppFleetDriversRoute: AppFleetDriversRoute,
+  AppFleetIndexRoute: AppFleetIndexRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

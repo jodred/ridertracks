@@ -8,6 +8,8 @@ import {
   User,
   Car,
   ShieldCheck,
+  Users,
+  Home,
   LogOut,
 } from "lucide-react";
 import type { ReactNode } from "react";
@@ -26,6 +28,19 @@ const navItems: NavItem[] = [
   { to: "/profile", label: "Profile", icon: User },
 ];
 
+const fleetNavItems: NavItem[] = [
+  { to: "/fleet", label: "Home", icon: Home, exact: true },
+  { to: "/fleet/drivers", label: "Drivers", icon: Users },
+  { to: "/settings", label: "Settings", icon: Settings },
+  { to: "/profile", label: "Profile", icon: User },
+];
+
+const fleetMobileNavItems: NavItem[] = [
+  { to: "/fleet", label: "Home", icon: Home, exact: true },
+  { to: "/fleet/drivers", label: "Drivers", icon: Users },
+  { to: "/profile", label: "Profile", icon: User },
+];
+
 const mobileNavItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/entry", label: "Entry", icon: PlusCircle },
@@ -37,14 +52,15 @@ const mobileNavItems: NavItem[] = [
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { state, workspace, setWorkspace } = useStore();
-  const { isAdmin, user, signOut } = useAuth();
+  const { isAdmin, user, signOut, accountType } = useAuth();
+  const isFleet = accountType === "fleet";
   const navigate = useNavigate();
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
 
-  const visibleNav = navItems.filter((i) => !i.adminOnly || isAdmin);
-  const visibleMobile = mobileNavItems.filter((i) => !i.adminOnly || isAdmin);
+  const visibleNav = (isFleet ? fleetNavItems : navItems).filter((i) => !i.adminOnly || isAdmin);
+  const visibleMobile = (isFleet ? fleetMobileNavItems : mobileNavItems).filter((i) => !i.adminOnly || isAdmin);
 
   async function handleSignOut() {
     await signOut();
@@ -131,8 +147,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="text-sm font-semibold">RideTracks</div>
           </Link>
           <div className="ml-auto flex items-center gap-2">
-            {workspaceToggle}
-            <GlobalDateRangePicker />
+            {!isFleet && workspaceToggle}
+            {!isFleet && <GlobalDateRangePicker />}
             <button
               onClick={handleSignOut}
               className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

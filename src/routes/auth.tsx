@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Car } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
+import { PENDING_ACCOUNT_TYPE_KEY, type AccountType } from "@/lib/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -28,15 +29,27 @@ function AuthPage() {
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [accountType, setAccountType] = useState<AccountType>("driver");
+
+  async function goHome() {
+    const { data } = await supabase.auth.getUser();
+    const uid = data.user?.id;
+    if (uid) {
+      const { data: p } = await supabase.from("profiles").select("account_type").eq("id", uid).maybeSingle();
+      if (p?.account_type === "fleet") return navigate({ to: "/fleet" });
+    }
+    navigate({ to: "/dashboard" });
+  }
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/dashboard" });
+      if (data.session) goHome();
     });
   }, [navigate]);
 
   async function handleGoogle() {
     setBusy(true);
+    if (mode === "signup") localStorage.setItem(PENDING_ACCOUNT_TYPE_KEY, accountType);
     const result = await lovable.auth.signInWithOAuth("google", {
       redirect_uri: window.location.origin + "/auth",
     });
@@ -46,7 +59,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/dashboard" });
+    goHome();
   }
 
   async function handleSignIn(e: React.FormEvent) {
@@ -55,7 +68,7 @@ function AuthPage() {
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     setBusy(false);
     if (error) return toast.error(error.message);
-    navigate({ to: "/dashboard" });
+    goHome();
   }
 
   async function handleSignUp(e: React.FormEvent) {
@@ -66,7 +79,7 @@ function AuthPage() {
       password,
       options: {
         emailRedirectTo: window.location.origin + "/dashboard",
-        data: { display_name: displayName },
+        data: { display_name: displayName, account_type: accountType },
       },
     });
     setBusy(false);
@@ -146,7 +159,32 @@ function AuthPage() {
               <TabsContent value="signup" className="mt-4 space-y-4">
                 <form onSubmit={handleSignUp} className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="su-name">Name</Label>
+                    <Label>I am registering as</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {([
+                        { key: "driver", title: "Driver", desc: "Track my own earnings" },
+                        { key: "fleet", title: "Fleet partner", desc: "Manage my drivers" },
+                      ] as const).map((o) => (
+                        <button
+                          key={o.key}
+                          type="button"
+                          onClick={() => setAccountType(o.key)}
+                          aria-pressed={accountType === o.key}
+                          className={[
+                            "rounded-xl border p-3 text-left transition-colors",
+                            accountType === o.key
+                              ? "border-primary bg-accent"
+                              : "border-border hover:bg-secondary",
+                          ].join(" ")}
+                        >
+                          <div className="text-sm font-semibold">{o.title}</div>
+                          <div className="text-xs text-muted-foreground">{o.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="su-name">{accountType === "fleet" ? "Company name" : "Name"}</Label>
                     <Input id="su-name" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
                   </div>
                   <div className="space-y-2">
