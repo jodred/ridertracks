@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Calendar as CalendarIcon, ChevronDown, FileText, Send, Trash2, UserPlus } from "lucide-react";
+import { Calendar as CalendarIcon, ChevronDown, FileText, Send, UserPlus } from "lucide-react";
 import { Link } from "@tanstack/react-router";
 import type { DateRange as DayPickerRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
@@ -62,7 +62,7 @@ function DriversPage() {
     setDrivers((d ?? []) as FleetDriver[]);
     const { data: e } = await supabase
       .from("fleet_driver_entries")
-      .select("driver_id, date, gross, cash")
+      .select("driver_id, date, gross, cash, gas_card")
       .gte("date", range.from)
       .lte("date", range.to);
     setEntries((e ?? []) as FleetEntry[]);
@@ -86,7 +86,7 @@ function DriversPage() {
     return clamped < range.from ? range.from : clamped;
   }, [range.from, range.to]);
 
-  async function saveCell(driverId: string, field: "gross" | "cash", total: number) {
+  async function saveCell(driverId: string, field: "gross" | "cash" | "gas_card", total: number) {
     if (!user) return;
     const mine = entries.filter((e) => e.driver_id === driverId);
     const others = mine
@@ -100,12 +100,19 @@ function DriversPage() {
       date: targetDate,
       gross: field === "gross" ? value : Number(existing?.gross ?? 0),
       cash: field === "cash" ? value : Number(existing?.cash ?? 0),
+      gas_card: field === "gas_card" ? value : Number(existing?.gas_card ?? 0),
     };
     const { error } = await supabase.from("fleet_driver_entries").upsert(payload, { onConflict: "driver_id,date" });
     if (error) return toast.error(error.message);
     setEntries((prev) => {
       const next = prev.filter((e) => !(e.driver_id === driverId && e.date === targetDate));
-      next.push({ driver_id: driverId, date: targetDate, gross: payload.gross, cash: payload.cash });
+      next.push({
+        driver_id: driverId,
+        date: targetDate,
+        gross: payload.gross,
+        cash: payload.cash,
+        gas_card: payload.gas_card,
+      });
       return next;
     });
   }
@@ -119,25 +126,18 @@ function DriversPage() {
     setDrivers((prev) => prev.map((d) => (d.id === driverId ? { ...d, app_fee_override: weeklyFee } : d)));
   }
 
-  async function removeDriver(driverId: string, name: string) {
-    if (!confirm(`Remove ${name} and all their recorded earnings?`)) return;
-    const { error } = await supabase.from("fleet_drivers").delete().eq("id", driverId);
-    if (error) return toast.error(error.message);
-    setDrivers((prev) => prev.filter((d) => d.id !== driverId));
-    toast.success(`${name} removed`);
-  }
-
   const opts = { company: state.fleet.fleetName, from: range.from, to: range.to, currency };
 
   const totals = rows.reduce(
     (acc, r) => ({
       gross: acc.gross + r.gross,
       cash: acc.cash + r.cash,
+      gasCard: acc.gasCard + r.gasCard,
       vat: acc.vat + r.vat,
       appFee: acc.appFee + r.appFee,
       payout: acc.payout + r.payout,
     }),
-    { gross: 0, cash: 0, vat: 0, appFee: 0, payout: 0 },
+    { gross: 0, cash: 0, gasCard: 0, vat: 0, appFee: 0, payout: 0 },
   );
 
   return (
@@ -171,6 +171,7 @@ function DriversPage() {
                   <Th>Email</Th>
                   <Th right>Gross earning</Th>
                   <Th right>Cash</Th>
+                  <Th right>Gas card</Th>
                   <Th right>VAT</Th>
                   <Th right>Application fee</Th>
                   <Th right>Payout</Th>
@@ -180,7 +181,7 @@ function DriversPage() {
               <tbody>
                 {rows.length === 0 && (
                   <tr>
-                    <td colSpan={9} className="p-8 text-center text-sm text-muted-foreground">
+                    <td colSpan={10} className="p-8 text-center text-sm text-muted-foreground">
                       No drivers yet — add your first driver to start tracking payouts.
                     </td>
                   </tr>
@@ -195,6 +196,9 @@ function DriversPage() {
                     </td>
                     <td className="px-2 py-2 text-right">
                       <NumberCell value={r.cash} onCommit={(v) => saveCell(r.driver.id, "cash", v)} />
+                    </td>
+                    <td className="px-2 py-2 text-right">
+                      <NumberCell value={r.gasCard} onCommit={(v) => saveCell(r.driver.id, "gas_card", v)} />
                     </td>
                     <td className="px-4 py-2 text-right tabular-nums">{formatMoney(r.vat, currency)}</td>
                     <td className="px-2 py-2 text-right">
@@ -218,14 +222,6 @@ function DriversPage() {
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          title="Remove driver"
-                          onClick={() => removeDriver(r.driver.id, r.driver.name)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
                       </div>
                     </td>
                   </tr>
@@ -237,6 +233,7 @@ function DriversPage() {
                     <td className="px-4 py-3" colSpan={3}>Totals</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatMoney(totals.gross, currency)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatMoney(totals.cash, currency)}</td>
+                    <td className="px-4 py-3 text-right tabular-nums">{formatMoney(totals.gasCard, currency)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatMoney(totals.vat, currency)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatMoney(totals.appFee, currency)}</td>
                     <td className="px-4 py-3 text-right tabular-nums">{formatMoney(totals.payout, currency)}</td>
@@ -250,7 +247,7 @@ function DriversPage() {
       </Card>
 
       <p className="text-xs text-muted-foreground">
-        Payout = Gross − Application fee − Cash − VAT. The application fee is charged once per week (Monday–Sunday) and
+        Payout = Gross − Application fee − Cash − VAT − Gas card. The application fee is charged once per week (Monday–Sunday) and
         VAT uses your fleet commission from Settings. Values you type apply to the selected period.
       </p>
 

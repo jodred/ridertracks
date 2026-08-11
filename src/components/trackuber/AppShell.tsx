@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       {/* Desktop sidebar */}
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-border bg-sidebar px-4 py-6 lg:flex lg:flex-col">
-        <Link to="/" className="mb-8 flex items-center gap-2 px-2">
+        <Link to={homeTo} className="mb-8 flex items-center gap-2 px-2">
           <div className="grid h-9 w-9 place-items-center rounded-xl bg-primary text-primary-foreground">
             <Car className="h-5 w-5" />
           </div>
@@ -140,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Main */}
       <div className="lg:pl-64">
         <header className="sticky top-0 z-20 flex items-center gap-3 border-b border-border bg-background/80 px-4 py-3 backdrop-blur-md sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-2 lg:hidden">
+          <Link to={homeTo} className="flex items-center gap-2 lg:hidden">
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-primary text-primary-foreground">
               <Car className="h-4 w-4" />
             </div>
