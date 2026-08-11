@@ -59,6 +59,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
 
+  const homeTo = isFleet ? "/fleet" : "/dashboard";
   const visibleNav = (isFleet ? fleetNavItems : navItems).filter((i) => !i.adminOnly || isAdmin);
   const visibleMobile = (isFleet ? fleetMobileNavItems : mobileNavItems).filter((i) => !i.adminOnly || isAdmin);
 
