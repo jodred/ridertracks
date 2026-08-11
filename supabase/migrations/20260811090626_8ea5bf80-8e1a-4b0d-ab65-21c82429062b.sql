@@ -1,0 +1,1 @@
+ALTER TABLE public.fleet_driver_entries ADD COLUMN IF NOT EXISTS gas_card numeric NOT NULL DEFAULT 0;
