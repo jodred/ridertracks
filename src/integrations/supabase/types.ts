@@ -21,6 +21,7 @@ export type Database = {
           date: string
           driver_id: string
           fleet_user_id: string
+          gas_card: number
           gross: number
           id: string
           updated_at: string
@@ -31,6 +32,7 @@ export type Database = {
           date: string
           driver_id: string
           fleet_user_id: string
+          gas_card?: number
           gross?: number
           id?: string
           updated_at?: string
@@ -41,6 +43,7 @@ export type Database = {
           date?: string
           driver_id?: string
           fleet_user_id?: string
+          gas_card?: number
           gross?: number
           id?: string
           updated_at?: string
