@@ -1,7 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Trash2, ArrowUp, ArrowDown, Sun, Moon, Download, Upload } from "lucide-react";
 import { useStore } from "../lib/trackuber/store";
+import { useAuth } from "../lib/auth/AuthProvider";
 import { applyDeductions, formatMoney } from "../lib/trackuber/calc";
 import type { Deduction } from "../lib/trackuber/types";
 import { Card, CardContent } from "../components/ui/card";
@@ -27,6 +28,7 @@ function uid() { return Math.random().toString(36).slice(2, 10); }
 
 function SettingsPage() {
   const { state, updateFleet, addDeduction, updateDeduction, removeDeduction, reorderDeductions, addCategory, removeCategory, updateProfile, exportData, importData } = useStore();
+  const { accountType } = useAuth();
   const fleet = state.fleet;
   const [newCat, setNewCat] = useState("");
 
@@ -49,6 +51,20 @@ function SettingsPage() {
         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Configuration</div>
         <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Settings</h1>
       </div>
+
+      {accountType === "fleet" && (
+        <Card className="rounded-2xl border-border shadow-card">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-5">
+            <div>
+              <div className="text-sm font-semibold">Drivers</div>
+              <div className="text-xs text-muted-foreground">Edit driver IDs, names, emails and fees, or remove drivers.</div>
+            </div>
+            <Button asChild className="rounded-xl">
+              <Link to="/fleet/manage-drivers">Manage drivers</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="rounded-2xl border-border shadow-card">
         <CardContent className="space-y-4 p-5">
