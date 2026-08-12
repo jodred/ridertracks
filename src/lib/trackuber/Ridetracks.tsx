@@ -372,7 +372,7 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-  }), [state, range, workspace, userKey]);
+  }), [state, range, workspace, userKey, ready]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }
