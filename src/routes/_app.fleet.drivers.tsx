@@ -52,6 +52,9 @@ function DriversPage() {
   const [drivers, setDrivers] = useState<FleetDriver[]>([]);
   const [entries, setEntries] = useState<FleetEntry[]>([]);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [sending, setSending] = useState<string | null>(null);
+  const sendInvoiceFn = useServerFn(sendDriverInvoice);
+
 
   const load = useCallback(async () => {
     if (!user) return;
