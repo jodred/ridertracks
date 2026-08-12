@@ -21,7 +21,7 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { useStore } from "../lib/trackuber/store";
+import { useStore } from "../lib/trackuber/Ridetracks";
 import { formatMoney, formatDateShort, summarize } from "../lib/trackuber/calc";
 import { Card, CardContent } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";

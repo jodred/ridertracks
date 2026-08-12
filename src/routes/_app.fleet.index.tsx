@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { UserPlus, Users, Building2, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { useStore } from "@/lib/trackuber/store";
+import { useStore } from "@/lib/trackuber/Ridetracks";
 import { computeRange, formatMoney } from "@/lib/trackuber/calc";
 import { buildDriverRow, type FleetDriver, type FleetEntry } from "@/lib/fleet/fleet";
 import { Card, CardContent } from "@/components/ui/card";
@@ -54,7 +54,7 @@ function FleetHome() {
     <div className="flex flex-col gap-6">
       <div>
         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fleet Partner</div>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{state.fleet.fleetName}</h1>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{state.fleet.fleetName || state.profile.fleetName || "Your fleet"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Manage your drivers, earnings and weekly settlements.</p>
       </div>
 
