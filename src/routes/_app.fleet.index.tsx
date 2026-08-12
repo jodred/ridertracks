@@ -54,7 +54,7 @@ function FleetHome() {
     <div className="flex flex-col gap-6">
       <div>
         <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fleet Partner</div>
-        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{state.fleet.fleetName}</h1>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{state.fleet.fleetName || state.profile.fleetName || "Your fleet"}</h1>
         <p className="mt-1 text-sm text-muted-foreground">Manage your drivers, earnings and weekly settlements.</p>
       </div>
 

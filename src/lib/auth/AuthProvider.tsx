@@ -101,6 +101,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accountType,
         loading,
         signOut: async () => {
+          // Drop every cached workspace so the next account starts clean.
+          if (typeof window !== "undefined") {
+            for (let i = localStorage.length - 1; i >= 0; i--) {
+              const k = localStorage.key(i);
+              if (k && k.startsWith("trackuber_v2_")) localStorage.removeItem(k);
+            }
+          }
           await supabase.auth.signOut();
         },
       }}
