@@ -11,18 +11,18 @@ const WORKSPACE_PREFIX = "trackuber_v2_workspace:";
 const GUEST_KEY = "guest";
 
 const ridesFleet: FleetSettings = {
-  fleetName: "Eternis",
-  weeklyAppFee: 50,
+  fleetName: "",
+  weeklyAppFee: 0,
   currency: "zł",
   firstDayOfWeek: 1,
   deductions: [
-    { id: "d1", name: "Fleet Commission", type: "percent", value: 7, applyTo: "gross" },
+    { id: "d1", name: "Fleet Commission", type: "percent", value: 0, applyTo: "gross" },
   ],
   categories: ["Fuel", "Food", "Repairs", "Other"],
 };
 
 const foodsFleet: FleetSettings = {
-  fleetName: "Uber Eats",
+  fleetName: "",
   weeklyAppFee: 0,
   currency: "zł",
   firstDayOfWeek: 1,
@@ -31,9 +31,9 @@ const foodsFleet: FleetSettings = {
 };
 
 const ridesProfile: Profile = {
-  driverName: "Driver",
+  driverName: "",
   email: "",
-  fleetName: "Eternis",
+  fleetName: "",
   vehicle: "",
   registration: "",
   memberSince: new Date().toISOString().slice(0, 10),
@@ -42,8 +42,8 @@ const ridesProfile: Profile = {
 
 const foodsProfile: Profile = {
   ...ridesProfile,
-  fleetName: "Uber Eats",
 };
+
 
 function defaultFleetFor(ws: Workspace): FleetSettings {
   return ws === "foods" ? foodsFleet : ridesFleet;
