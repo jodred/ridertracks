@@ -268,11 +268,12 @@ function DriversPage() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            Email delivery needs a verified sender domain for your fleet. Until that is set up, generate each driver's
-            invoice PDF here and attach it to your own email.
+            Invoices are emailed straight to each driver with their gross, cash, gas card, VAT, application fee and
+            final payout.
           </p>
           <DialogFooter>
             <Button
+              variant="outline"
               className="rounded-xl"
               onClick={() => {
                 rows.forEach((r, i) =>
@@ -285,11 +286,33 @@ function DriversPage() {
               }}
               disabled={rows.length === 0}
             >
-              <FileText className="h-4 w-4" /> Generate all invoices
+              <FileText className="h-4 w-4" /> Generate PDFs
+            </Button>
+            <Button
+              className="rounded-xl"
+              disabled={rows.length === 0 || sending !== null}
+              onClick={async () => {
+                setSending("all");
+                let ok = 0;
+                for (const r of rows) {
+                  try {
+                    await sendInvoice(r.driver.id);
+                    ok += 1;
+                  } catch (err) {
+                    toast.error(`${r.driver.code}: ${(err as Error).message}`);
+                  }
+                }
+                setSending(null);
+                if (ok) toast.success(`Sent ${ok} invoice${ok === 1 ? "" : "s"}`);
+                setInvoiceOpen(false);
+              }}
+            >
+              <Send className="h-4 w-4" /> {sending === "all" ? "Sending…" : "Email all invoices"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
     </div>
   );
 }
