@@ -243,8 +243,28 @@ function DriversPage() {
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          title={`Email invoice to ${r.driver.email}`}
+                          disabled={sending !== null}
+                          onClick={async () => {
+                            setSending(r.driver.id);
+                            try {
+                              const res = await sendInvoice(r.driver.id);
+                              toast.success(`Invoice sent to ${res.email}`);
+                            } catch (err) {
+                              toast.error((err as Error).message);
+                            } finally {
+                              setSending(null);
+                            }
+                          }}
+                        >
+                          <Send className="h-4 w-4" />
+                        </Button>
                       </div>
                     </td>
+
                   </tr>
                 ))}
               </tbody>
