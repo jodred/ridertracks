@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { GlobalDateRangePicker } from "./GlobalDateRangePicker";
-import { useStore } from "../../lib/trackuber/store";
+import { useStore } from "../../lib/trackuber/Ridetracks";
 import { useAuth } from "../../lib/auth/AuthProvider";
 
 interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; adminOnly?: boolean }

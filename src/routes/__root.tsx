@@ -11,7 +11,7 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
-import { TrackUberProvider } from "../lib/trackuber/store";
+import { TrackUberProvider } from "../lib/trackuber/Ridetracks";
 import { Toaster } from "../components/ui/sonner";
 import { AuthProvider } from "../lib/auth/AuthProvider";
 
