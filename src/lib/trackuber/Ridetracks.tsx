@@ -303,6 +303,8 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
     state,
     range,
     workspace,
+    ready,
+
     setWorkspace,
     setRange: (r) => setRangeState(r),
     setPreset: (p) => setRangeState(computeRange(p, undefined, undefined, state.fleet.firstDayOfWeek)),
