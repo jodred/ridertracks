@@ -134,6 +134,21 @@ function DriversPage() {
 
   const opts = { company: state.fleet.fleetName, from: range.from, to: range.to, currency };
 
+  async function sendInvoice(driverId: string) {
+    return sendInvoiceFn({
+      data: {
+        driverId,
+        from: range.from,
+        to: range.to,
+        company: state.fleet.fleetName,
+        currency,
+        weeklyAppFee: state.fleet.weeklyAppFee,
+        deductions: state.fleet.deductions,
+      },
+    });
+  }
+
+
   const totals = rows.reduce(
     (acc, r) => ({
       gross: acc.gross + r.gross,
