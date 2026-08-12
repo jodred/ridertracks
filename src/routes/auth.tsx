@@ -33,15 +33,30 @@ function AuthPage() {
   const [accountType, setAccountType] = useState<AccountType>("driver");
   const [country, setCountry] = useState("");
   const [currency, setCurrency] = useState("zł");
+  const [fleetName, setFleetName] = useState("");
   const [detecting, setDetecting] = useState(false);
 
   async function goHome() {
     const { data } = await supabase.auth.getUser();
     const uid = data.user?.id;
-    if (uid) {
-      const { data: p } = await supabase.from("profiles").select("account_type").eq("id", uid).maybeSingle();
-      if (p?.account_type === "fleet") return navigate({ to: "/fleet", replace: true });
+    if (!uid) return navigate({ to: "/auth", replace: true });
+
+    // Fetch user_data and user metadata to determine if onboarding is required
+    const [{ data: ud }, { data: p }] = await Promise.all([
+      supabase.from("user_data").select("fleet,profile,workspace").eq("user_id", uid).maybeSingle(),
+      supabase.from("profiles").select("account_type").eq("id", uid).maybeSingle(),
+    ]);
+
+    const meta = data.user?.user_metadata ?? {};
+    const existingFleetName = (ud?.fleet as any)?.fleetName ?? (ud?.profile as any)?.fleetName ?? (meta["fleet_name"] as string) ?? "";
+    const existingName = (ud?.profile as any)?.driverName ?? (ud?.profile as any)?.display_name ?? (meta["display_name"] as string) ?? "";
+
+    if (!existingName.trim() || !existingFleetName.trim()) {
+      // Need onboarding before entering app
+      return navigate({ to: "/onboarding", replace: true });
     }
+
+    if (p?.account_type === "fleet") return navigate({ to: "/fleet", replace: true });
     navigate({ to: "/dashboard", replace: true });
   }
 
@@ -88,16 +103,36 @@ function AuthPage() {
   async function handleSignUp(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
+    // Require fleet/company for driver and fleet signups
+    if (accountType === "driver" && !fleetName.trim()) {
+      setBusy(false);
+      return toast.error("Fleet Name / Company Name is required for drivers");
+    }
+    if (accountType === "fleet" && !displayName.trim()) {
+      setBusy(false);
+      return toast.error("Fleet Name / Company Name is required for fleet partners");
+    }
+
+    const signUpData: Record<string, any> = {
+      display_name: displayName,
+      account_type: accountType,
+    };
+    if (accountType === "driver") {
+      signUpData.country = country;
+      signUpData.currency = currency;
+      signUpData.fleet_name = fleetName.trim();
+    }
+    if (accountType === "fleet") {
+      // For fleet partners the provided displayName is the Fleet/Company name
+      signUpData.fleet_name = displayName.trim();
+    }
+
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         emailRedirectTo: window.location.origin + "/auth",
-        data: {
-          display_name: displayName,
-          account_type: accountType,
-          ...(accountType === "driver" ? { country, currency } : {}),
-        },
+        data: signUpData,
       },
     });
     setBusy(false);
@@ -204,11 +239,11 @@ function AuthPage() {
 
                 <form onSubmit={handleSignUp} className="space-y-3">
                   <div className="space-y-2">
-                    <Label htmlFor="su-name">{accountType === "fleet" ? "Company name" : "Name"}</Label>
+                    <Label htmlFor="su-name">{accountType === "fleet" ? "Fleet Name / Company Name" : "Name"}</Label>
                     <Input
                       id="su-name"
                       required
-                      placeholder={accountType === "fleet" ? "Your company" : "Your full name"}
+                      placeholder={accountType === "fleet" ? "Fleet or company name" : "Your full name"}
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                     />
@@ -224,6 +259,17 @@ function AuthPage() {
 
                   {accountType === "driver" && (
                     <div className="space-y-2 rounded-xl border border-border p-3">
+                      <div className="space-y-2">
+                        <Label htmlFor="su-fleet">Fleet Name / Company Name</Label>
+                        <Input
+                          id="su-fleet"
+                          required
+                          placeholder="Your fleet or company"
+                          value={fleetName}
+                          onChange={(e) => setFleetName(e.target.value)}
+                        />
+                      </div>
+
                       <div className="flex items-center justify-between">
                         <Label htmlFor="su-country">Location</Label>
                         <Button type="button" size="sm" variant="ghost" onClick={handleDetect} disabled={detecting}>

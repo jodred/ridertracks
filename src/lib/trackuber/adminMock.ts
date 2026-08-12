@@ -65,13 +65,13 @@ export const mockRiders: Rider[] = [
     profile: {
       driverName: "Marek Kowalski",
       email: "marek@example.com",
-      fleetName: "Eternis",
+      fleetName: "",
       vehicle: "Toyota Corolla",
       registration: "WA 1234A",
       memberSince: "2025-03-14",
       theme: "light",
     },
-    fleet: defaultFleet("Eternis", 50, 7),
+    fleet: defaultFleet("", 50, 7),
     entries: generateEntries(101, 30, 620, 0.22),
   },
   {

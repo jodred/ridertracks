@@ -179,13 +179,16 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
     const name = (meta["display_name"] as string) || (meta["name"] as string) || "";
     const isFleet = meta["account_type"] === "fleet";
     const currency = (meta["currency"] as string) || base.fleet.currency;
+    // If provided at signup, use the fleet_name metadata (drivers supply their company/fleet at signup).
+    const fleetFromMeta = (meta["fleet_name"] as string) || (isFleet ? name : "");
     return {
       entries: {},
-      fleet: { ...base.fleet, currency, fleetName: isFleet ? name : "" },
+      fleet: { ...base.fleet, currency, fleetName: fleetFromMeta },
       profile: {
         ...base.profile,
         driverName: isFleet ? "" : name,
-        fleetName: isFleet ? name : "",
+        // Keep profile.fleetName in sync with fleet.fleetName to avoid duplicate divergent state.
+        fleetName: fleetFromMeta,
         email: email ?? "",
       },
     };
@@ -317,7 +320,12 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
         delete next[date];
         return { ...s, entries: next };
       }),
-    updateFleet: (f) => setState((s) => ({ ...s, fleet: { ...s.fleet, ...f } })),
+    updateFleet: (f) => setState((s) => ({
+      ...s,
+      fleet: { ...s.fleet, ...f },
+      // Keep profile.fleetName in sync with fleet.fleetName to avoid divergent sources of truth
+      profile: f.fleetName !== undefined ? { ...s.profile, fleetName: f.fleetName } : s.profile,
+    })),
     addDeduction: (d) => setState((s) => ({ ...s, fleet: { ...s.fleet, deductions: [...s.fleet.deductions, d] } })),
     updateDeduction: (id, patch) =>
       setState((s) => ({
@@ -355,7 +363,12 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
         ...s,
         fleet: { ...s.fleet, categories: s.fleet.categories.filter((c) => c !== name) },
       })),
-    updateProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
+    updateProfile: (p) => setState((s) => ({
+      ...s,
+      profile: { ...s.profile, ...p },
+      // If profile contains a fleetName, keep fleet.fleetName in sync with it
+      fleet: p.fleetName !== undefined ? { ...s.fleet, fleetName: p.fleetName } : s.fleet,
+    })),
     exportData: () => JSON.stringify(state, null, 2),
     importData: (json) => {
       try {

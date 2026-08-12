@@ -702,7 +702,7 @@ Allow the user to enter their fleet name.
 
 Example:
 
-Eternis
+(example)
 
 Weekly Fleet App Fee
 
@@ -818,7 +818,7 @@ Gross Revenue
 
 Example 2
 
-Eternis
+(example)
 
 8% VAT
 
@@ -966,7 +966,7 @@ the settings page can show:
 
 Current Fleet Configuration
 
-Fleet: Eternis
+Fleet: (example)
 
 Recurring Deductions
 
