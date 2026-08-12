@@ -80,8 +80,8 @@ function LandingPage() {
             <Sparkles className="h-3.5 w-3.5 text-primary" /> Built for professional drivers
           </div>
           <h1 className="mt-5 text-4xl font-semibold tracking-tight sm:text-5xl lg:text-6xl">
-            Track every ride.<br />
-            <span className="text-primary">Know every złoty.</span>
+            Track your rides.<br />
+            <span className="text-primary">Know  your earnings.</span>
           </h1>
           <p className="mt-5 max-w-lg text-lg text-muted-foreground">
             RideTracks helps taxi and rideshare drivers track earnings, expenses, fleet deductions,
