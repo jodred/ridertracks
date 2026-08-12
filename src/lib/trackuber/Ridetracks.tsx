@@ -106,10 +106,26 @@ function loadWorkspace(userKey: string): Workspace {
   return "rides";
 }
 
+/** Remove every cached namespace that does not belong to the given user key. */
+function purgeForeignCaches(keepKey: string) {
+  if (typeof window === "undefined") return;
+  const prefixes = [STORAGE_PREFIX, RANGE_PREFIX, WORKSPACE_PREFIX];
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (!k) continue;
+    const p = prefixes.find((pre) => k.startsWith(pre));
+    if (!p) continue;
+    const owner = k.slice(p.length).split(":")[0];
+    if (owner !== keepKey) localStorage.removeItem(k);
+  }
+}
+
 interface StoreCtx {
   state: AppState;
   range: DateRange;
   workspace: Workspace;
+  /** False until the authenticated user's remote data has resolved. */
+  ready: boolean;
   setWorkspace: (ws: Workspace) => void;
   setRange: (r: DateRange) => void;
   setPreset: (p: DateRangePreset) => void;
@@ -136,7 +152,9 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => defaultStateFor("rides"));
   const [range, setRangeState] = useState<DateRange>(() => computeRange("thisMonth"));
   const [hydrated, setHydrated] = useState(false);
+  const [ready, setReady] = useState(false);
   const remoteReadyRef = useRef(false);
+  const hydrationRef = useRef(0);
 
   async function loadRemote(uid: string, ws: Workspace): Promise<AppState | null> {
     const { data, error } = await supabase
@@ -155,49 +173,85 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
     };
   }
 
+  /** Seed a brand-new account from the details captured at sign-up. */
+  function seedFor(ws: Workspace, meta: Record<string, any>, email: string | undefined): AppState {
+    const base = defaultStateFor(ws);
+    const name = (meta["display_name"] as string) || (meta["name"] as string) || "";
+    const isFleet = meta["account_type"] === "fleet";
+    const currency = (meta["currency"] as string) || base.fleet.currency;
+    return {
+      entries: {},
+      fleet: { ...base.fleet, currency, fleetName: isFleet ? name : "" },
+      profile: {
+        ...base.profile,
+        driverName: isFleet ? "" : name,
+        fleetName: isFleet ? name : "",
+        email: email ?? "",
+      },
+    };
+  }
+
   async function hydrateFor(uid: string | null, ws: Workspace) {
+    const token = ++hydrationRef.current;
     const key = uid ?? GUEST_KEY;
+    remoteReadyRef.current = false;
+    setReady(false);
     setUserKey(key);
     setWorkspaceState(ws);
-    const local = loadState(key, ws);
-    setState(local);
+    purgeForeignCaches(key);
+
+    if (!uid) {
+      // Guest: never show a previous user's data.
+      setState(defaultStateFor(ws));
+      setRangeState(computeRange("thisMonth"));
+      setHydrated(true);
+      return;
+    }
+
+    // Authenticated: nothing renders from cache until the remote row resolves.
+    const remote = await loadRemote(uid, ws);
+    if (token !== hydrationRef.current) return;
+
+    if (remote) {
+      setState(remote);
+    } else {
+      const { data: u } = await supabase.auth.getUser();
+      if (token !== hydrationRef.current) return;
+      const seed = seedFor(ws, (u.user?.user_metadata ?? {}) as Record<string, any>, u.user?.email);
+      setState(seed);
+      await supabase.from("user_data").upsert(
+        {
+          user_id: uid,
+          workspace: ws,
+          entries: seed.entries as any,
+          fleet: seed.fleet as any,
+          profile: seed.profile as any,
+        },
+        { onConflict: "user_id,workspace" },
+      );
+      if (token !== hydrationRef.current) return;
+    }
     setRangeState(loadRange(key, ws));
     setHydrated(true);
-    if (uid) {
-      remoteReadyRef.current = false;
-      const remote = await loadRemote(uid, ws);
-      if (remote) {
-        setState(remote);
-      } else {
-        await supabase.from("user_data").upsert(
-          {
-            user_id: uid,
-            workspace: ws,
-            entries: local.entries as any,
-            fleet: local.fleet as any,
-            profile: local.profile as any,
-          },
-          { onConflict: "user_id,workspace" },
-        );
-      }
-      remoteReadyRef.current = true;
-    } else {
-      remoteReadyRef.current = false;
-    }
+    remoteReadyRef.current = true;
+    setReady(true);
   }
 
   useEffect(() => {
+    let currentUid: string | null | undefined;
     supabase.auth.getSession().then(({ data }) => {
       const uid = data.session?.user?.id ?? null;
-      const ws = loadWorkspace(uid ?? GUEST_KEY);
-      hydrateFor(uid, ws);
+      currentUid = uid;
+      hydrateFor(uid, loadWorkspace(uid ?? GUEST_KEY));
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       const uid = session?.user?.id ?? null;
-      const ws = loadWorkspace(uid ?? GUEST_KEY);
-      hydrateFor(uid, ws);
+      if (uid === currentUid) return; // token refreshes must not re-trigger hydration
+      currentUid = uid;
+      hydrateFor(uid, loadWorkspace(uid ?? GUEST_KEY));
     });
     return () => sub.subscription.unsubscribe();
+
   }, []);
 
   useEffect(() => {
