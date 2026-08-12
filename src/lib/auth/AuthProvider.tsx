@@ -75,7 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      // When Supabase triggers a password recovery event, redirect the user
+      // to the in-app reset flow. Do this before regular session handling so
+      // the app shows the reset-password route immediately.
+      if (event === "PASSWORD_RECOVERY") {
+        if (typeof window !== "undefined") {
+          // Use a full navigation to ensure the app loads the reset page route.
+          window.location.href = "/reset-password";
+        }
+        // Still update local user state from the session if present.
+        const u = session?.user ?? null;
+        setUser(u);
+        return;
+      }
+
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
