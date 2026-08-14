@@ -75,21 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     });
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      // When Supabase triggers a password recovery event, redirect the user
-      // to the in-app reset flow. Do this before regular session handling so
-      // the app shows the reset-password route immediately.
-      if (event === "PASSWORD_RECOVERY") {
-        if (typeof window !== "undefined") {
-          // Use a full navigation to ensure the app loads the reset page route.
-          window.location.href = "/reset-password";
-        }
-        // Still update local user state from the session if present.
-        const u = session?.user ?? null;
-        setUser(u);
-        return;
-      }
-
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       const u = session?.user ?? null;
       setUser(u);
       if (u) {
@@ -115,13 +101,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         accountType,
         loading,
         signOut: async () => {
-          // Drop every cached workspace so the next account starts clean.
-          if (typeof window !== "undefined") {
-            for (let i = localStorage.length - 1; i >= 0; i--) {
-              const k = localStorage.key(i);
-              if (k && k.startsWith("trackuber_v2_")) localStorage.removeItem(k);
-            }
-          }
           await supabase.auth.signOut();
         },
       }}

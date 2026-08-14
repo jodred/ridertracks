@@ -6,13 +6,10 @@ import { Link } from "@tanstack/react-router";
 import type { DateRange as DayPickerRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { useStore } from "@/lib/trackuber/Ridetracks";
+import { useStore } from "@/lib/trackuber/store";
 import { computeRange, formatDateShort, formatMoney, parseISO, todayISO } from "@/lib/trackuber/calc";
 import type { DateRange, DateRangePreset } from "@/lib/trackuber/types";
 import { buildDriverRow, invoiceHtml, printHtml, type FleetDriver, type FleetEntry } from "@/lib/fleet/fleet";
-import { useServerFn } from "@tanstack/react-start";
-import { sendDriverInvoice } from "@/lib/fleet/invoice.functions";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -55,9 +52,6 @@ function DriversPage() {
   const [drivers, setDrivers] = useState<FleetDriver[]>([]);
   const [entries, setEntries] = useState<FleetEntry[]>([]);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
-  const [sending, setSending] = useState<string | null>(null);
-  const sendInvoiceFn = useServerFn(sendDriverInvoice);
-
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -133,21 +127,6 @@ function DriversPage() {
   }
 
   const opts = { company: state.fleet.fleetName, from: range.from, to: range.to, currency };
-
-  async function sendInvoice(driverId: string) {
-    return sendInvoiceFn({
-      data: {
-        driverId,
-        from: range.from,
-        to: range.to,
-        company: state.fleet.fleetName,
-        currency,
-        weeklyAppFee: state.fleet.weeklyAppFee,
-        deductions: state.fleet.deductions,
-      },
-    });
-  }
-
 
   const totals = rows.reduce(
     (acc, r) => ({
@@ -243,28 +222,8 @@ function DriversPage() {
                         >
                           <FileText className="h-4 w-4" />
                         </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          title={`Email invoice to ${r.driver.email}`}
-                          disabled={sending !== null}
-                          onClick={async () => {
-                            setSending(r.driver.id);
-                            try {
-                              const res = await sendInvoice(r.driver.id);
-                              toast.success(`Invoice sent to ${res.email}`);
-                            } catch (err) {
-                              toast.error((err as Error).message);
-                            } finally {
-                              setSending(null);
-                            }
-                          }}
-                        >
-                          <Send className="h-4 w-4" />
-                        </Button>
                       </div>
                     </td>
-
                   </tr>
                 ))}
               </tbody>
@@ -309,12 +268,11 @@ function DriversPage() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground">
-            Invoices are emailed straight to each driver with their gross, cash, gas card, VAT, application fee and
-            final payout.
+            Email delivery needs a verified sender domain for your fleet. Until that is set up, generate each driver's
+            invoice PDF here and attach it to your own email.
           </p>
           <DialogFooter>
             <Button
-              variant="outline"
               className="rounded-xl"
               onClick={() => {
                 rows.forEach((r, i) =>
@@ -327,33 +285,11 @@ function DriversPage() {
               }}
               disabled={rows.length === 0}
             >
-              <FileText className="h-4 w-4" /> Generate PDFs
-            </Button>
-            <Button
-              className="rounded-xl"
-              disabled={rows.length === 0 || sending !== null}
-              onClick={async () => {
-                setSending("all");
-                let ok = 0;
-                for (const r of rows) {
-                  try {
-                    await sendInvoice(r.driver.id);
-                    ok += 1;
-                  } catch (err) {
-                    toast.error(`${r.driver.code}: ${(err as Error).message}`);
-                  }
-                }
-                setSending(null);
-                if (ok) toast.success(`Sent ${ok} invoice${ok === 1 ? "" : "s"}`);
-                setInvoiceOpen(false);
-              }}
-            >
-              <Send className="h-4 w-4" /> {sending === "all" ? "Sending…" : "Email all invoices"}
+              <FileText className="h-4 w-4" /> Generate all invoices
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-
     </div>
   );
 }

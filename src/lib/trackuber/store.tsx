@@ -11,18 +11,18 @@ const WORKSPACE_PREFIX = "trackuber_v2_workspace:";
 const GUEST_KEY = "guest";
 
 const ridesFleet: FleetSettings = {
-  fleetName: "",
-  weeklyAppFee: 0,
+  fleetName: "Eternis",
+  weeklyAppFee: 50,
   currency: "zł",
   firstDayOfWeek: 1,
   deductions: [
-    { id: "d1", name: "Fleet Commission", type: "percent", value: 0, applyTo: "gross" },
+    { id: "d1", name: "Fleet Commission", type: "percent", value: 7, applyTo: "gross" },
   ],
   categories: ["Fuel", "Food", "Repairs", "Other"],
 };
 
 const foodsFleet: FleetSettings = {
-  fleetName: "",
+  fleetName: "Uber Eats",
   weeklyAppFee: 0,
   currency: "zł",
   firstDayOfWeek: 1,
@@ -31,9 +31,9 @@ const foodsFleet: FleetSettings = {
 };
 
 const ridesProfile: Profile = {
-  driverName: "",
+  driverName: "Driver",
   email: "",
-  fleetName: "",
+  fleetName: "Eternis",
   vehicle: "",
   registration: "",
   memberSince: new Date().toISOString().slice(0, 10),
@@ -42,8 +42,8 @@ const ridesProfile: Profile = {
 
 const foodsProfile: Profile = {
   ...ridesProfile,
+  fleetName: "Uber Eats",
 };
-
 
 function defaultFleetFor(ws: Workspace): FleetSettings {
   return ws === "foods" ? foodsFleet : ridesFleet;
@@ -106,26 +106,10 @@ function loadWorkspace(userKey: string): Workspace {
   return "rides";
 }
 
-/** Remove every cached namespace that does not belong to the given user key. */
-function purgeForeignCaches(keepKey: string) {
-  if (typeof window === "undefined") return;
-  const prefixes = [STORAGE_PREFIX, RANGE_PREFIX, WORKSPACE_PREFIX];
-  for (let i = localStorage.length - 1; i >= 0; i--) {
-    const k = localStorage.key(i);
-    if (!k) continue;
-    const p = prefixes.find((pre) => k.startsWith(pre));
-    if (!p) continue;
-    const owner = k.slice(p.length).split(":")[0];
-    if (owner !== keepKey) localStorage.removeItem(k);
-  }
-}
-
 interface StoreCtx {
   state: AppState;
   range: DateRange;
   workspace: Workspace;
-  /** False until the authenticated user's remote data has resolved. */
-  ready: boolean;
   setWorkspace: (ws: Workspace) => void;
   setRange: (r: DateRange) => void;
   setPreset: (p: DateRangePreset) => void;
@@ -152,9 +136,7 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AppState>(() => defaultStateFor("rides"));
   const [range, setRangeState] = useState<DateRange>(() => computeRange("thisMonth"));
   const [hydrated, setHydrated] = useState(false);
-  const [ready, setReady] = useState(false);
   const remoteReadyRef = useRef(false);
-  const hydrationRef = useRef(0);
 
   async function loadRemote(uid: string, ws: Workspace): Promise<AppState | null> {
     const { data, error } = await supabase
@@ -173,88 +155,49 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
     };
   }
 
-  /** Seed a brand-new account from the details captured at sign-up. */
-  function seedFor(ws: Workspace, meta: Record<string, any>, email: string | undefined): AppState {
-    const base = defaultStateFor(ws);
-    const name = (meta["display_name"] as string) || (meta["name"] as string) || "";
-    const isFleet = meta["account_type"] === "fleet";
-    const currency = (meta["currency"] as string) || base.fleet.currency;
-    // If provided at signup, use the fleet_name metadata (drivers supply their company/fleet at signup).
-    const fleetFromMeta = (meta["fleet_name"] as string) || (isFleet ? name : "");
-    return {
-      entries: {},
-      fleet: { ...base.fleet, currency, fleetName: fleetFromMeta },
-      profile: {
-        ...base.profile,
-        driverName: isFleet ? "" : name,
-        // Keep profile.fleetName in sync with fleet.fleetName to avoid duplicate divergent state.
-        fleetName: fleetFromMeta,
-        email: email ?? "",
-      },
-    };
-  }
-
   async function hydrateFor(uid: string | null, ws: Workspace) {
-    const token = ++hydrationRef.current;
     const key = uid ?? GUEST_KEY;
-    remoteReadyRef.current = false;
-    setReady(false);
     setUserKey(key);
     setWorkspaceState(ws);
-    purgeForeignCaches(key);
-
-    if (!uid) {
-      // Guest: never show a previous user's data.
-      setState(defaultStateFor(ws));
-      setRangeState(computeRange("thisMonth"));
-      setHydrated(true);
-      return;
-    }
-
-    // Authenticated: nothing renders from cache until the remote row resolves.
-    const remote = await loadRemote(uid, ws);
-    if (token !== hydrationRef.current) return;
-
-    if (remote) {
-      setState(remote);
-    } else {
-      const { data: u } = await supabase.auth.getUser();
-      if (token !== hydrationRef.current) return;
-      const seed = seedFor(ws, (u.user?.user_metadata ?? {}) as Record<string, any>, u.user?.email);
-      setState(seed);
-      await supabase.from("user_data").upsert(
-        {
-          user_id: uid,
-          workspace: ws,
-          entries: seed.entries as any,
-          fleet: seed.fleet as any,
-          profile: seed.profile as any,
-        },
-        { onConflict: "user_id,workspace" },
-      );
-      if (token !== hydrationRef.current) return;
-    }
+    const local = loadState(key, ws);
+    setState(local);
     setRangeState(loadRange(key, ws));
     setHydrated(true);
-    remoteReadyRef.current = true;
-    setReady(true);
+    if (uid) {
+      remoteReadyRef.current = false;
+      const remote = await loadRemote(uid, ws);
+      if (remote) {
+        setState(remote);
+      } else {
+        await supabase.from("user_data").upsert(
+          {
+            user_id: uid,
+            workspace: ws,
+            entries: local.entries as any,
+            fleet: local.fleet as any,
+            profile: local.profile as any,
+          },
+          { onConflict: "user_id,workspace" },
+        );
+      }
+      remoteReadyRef.current = true;
+    } else {
+      remoteReadyRef.current = false;
+    }
   }
 
   useEffect(() => {
-    let currentUid: string | null | undefined;
     supabase.auth.getSession().then(({ data }) => {
       const uid = data.session?.user?.id ?? null;
-      currentUid = uid;
-      hydrateFor(uid, loadWorkspace(uid ?? GUEST_KEY));
+      const ws = loadWorkspace(uid ?? GUEST_KEY);
+      hydrateFor(uid, ws);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
       const uid = session?.user?.id ?? null;
-      if (uid === currentUid) return; // token refreshes must not re-trigger hydration
-      currentUid = uid;
-      hydrateFor(uid, loadWorkspace(uid ?? GUEST_KEY));
+      const ws = loadWorkspace(uid ?? GUEST_KEY);
+      hydrateFor(uid, ws);
     });
     return () => sub.subscription.unsubscribe();
-
   }, []);
 
   useEffect(() => {
@@ -306,8 +249,6 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
     state,
     range,
     workspace,
-    ready,
-
     setWorkspace,
     setRange: (r) => setRangeState(r),
     setPreset: (p) => setRangeState(computeRange(p, undefined, undefined, state.fleet.firstDayOfWeek)),
@@ -320,12 +261,7 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
         delete next[date];
         return { ...s, entries: next };
       }),
-    updateFleet: (f) => setState((s) => ({
-      ...s,
-      fleet: { ...s.fleet, ...f },
-      // Keep profile.fleetName in sync with fleet.fleetName to avoid divergent sources of truth
-      profile: f.fleetName !== undefined ? { ...s.profile, fleetName: f.fleetName } : s.profile,
-    })),
+    updateFleet: (f) => setState((s) => ({ ...s, fleet: { ...s.fleet, ...f } })),
     addDeduction: (d) => setState((s) => ({ ...s, fleet: { ...s.fleet, deductions: [...s.fleet.deductions, d] } })),
     updateDeduction: (id, patch) =>
       setState((s) => ({
@@ -363,12 +299,7 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
         ...s,
         fleet: { ...s.fleet, categories: s.fleet.categories.filter((c) => c !== name) },
       })),
-    updateProfile: (p) => setState((s) => ({
-      ...s,
-      profile: { ...s.profile, ...p },
-      // If profile contains a fleetName, keep fleet.fleetName in sync with it
-      fleet: p.fleetName !== undefined ? { ...s.fleet, fleetName: p.fleetName } : s.fleet,
-    })),
+    updateProfile: (p) => setState((s) => ({ ...s, profile: { ...s.profile, ...p } })),
     exportData: () => JSON.stringify(state, null, 2),
     importData: (json) => {
       try {
@@ -385,7 +316,7 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
         return false;
       }
     },
-  }), [state, range, workspace, userKey, ready]);
+  }), [state, range, workspace, userKey]);
 
   return <Ctx.Provider value={api}>{children}</Ctx.Provider>;
 }

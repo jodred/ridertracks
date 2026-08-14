@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { LogOut } from "lucide-react";
-import { useStore } from "../lib/trackuber/Ridetracks";
+import { useStore } from "../lib/trackuber/store";
 import { Card, CardContent } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
@@ -34,7 +34,7 @@ function ProfilePage() {
         <CardContent className="grid grid-cols-1 gap-4 p-5 sm:grid-cols-2">
           <Field label="Driver Name" value={p.driverName} onChange={(v) => updateProfile({ driverName: v })} />
           <Field label="Email" value={p.email} onChange={(v) => updateProfile({ email: v })} type="email" />
-          <Field label="Fleet Name / Company Name" value={p.fleetName} onChange={(v) => updateProfile({ fleetName: v })} placeholder="Enter fleet/company name" />
+          <Field label="Fleet Name" value={p.fleetName} onChange={(v) => updateProfile({ fleetName: v })} />
           <Field label="Vehicle" value={p.vehicle} onChange={(v) => updateProfile({ vehicle: v })} placeholder="e.g. Toyota Corolla" />
           <Field label="Vehicle Registration" value={p.registration} onChange={(v) => updateProfile({ registration: v })} />
           <div className="space-y-2">

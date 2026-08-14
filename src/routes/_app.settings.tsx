@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { Plus, Trash2, ArrowUp, ArrowDown, Sun, Moon, Download, Upload } from "lucide-react";
-import { useStore } from "../lib/trackuber/Ridetracks";
+import { useStore } from "../lib/trackuber/store";
 import { useAuth } from "../lib/auth/AuthProvider";
 import { applyDeductions, formatMoney } from "../lib/trackuber/calc";
 import type { Deduction } from "../lib/trackuber/types";
@@ -71,8 +71,8 @@ function SettingsPage() {
           <div className="text-sm font-semibold">Fleet Settings</div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Fleet Name / Company Name</Label>
-              <Input value={fleet.fleetName} onChange={(e) => updateFleet({ fleetName: e.target.value })} placeholder="Enter fleet/company name" className="rounded-xl" />
+              <Label>Fleet Name</Label>
+              <Input value={fleet.fleetName} onChange={(e) => updateFleet({ fleetName: e.target.value })} className="rounded-xl" />
             </div>
             <div className="space-y-2">
               <Label>Weekly App Fee</Label>

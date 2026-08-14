@@ -9,37 +9,27 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AppRouteImport } from './routes/_app'
-import { Route as AdminLoginRouteImport } from './routes/admin-login'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as OnboardingRouteImport } from './routes/onboarding'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as AppAdminRouteImport } from './routes/_app.admin'
-import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
-import { Route as AppEntryRouteImport } from './routes/_app.entry'
-import { Route as AppHistoryRouteImport } from './routes/_app.history'
-import { Route as AppProfileRouteImport } from './routes/_app.profile'
-import { Route as AppReportsRouteImport } from './routes/_app.reports'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AdminLoginRouteImport } from './routes/admin-login'
+import { Route as AppRouteImport } from './routes/_app'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppSettingsRouteImport } from './routes/_app.settings'
-import { Route as AppAdminRiderIdRouteImport } from './routes/_app.admin.$riderId'
+import { Route as AppReportsRouteImport } from './routes/_app.reports'
+import { Route as AppProfileRouteImport } from './routes/_app.profile'
+import { Route as AppHistoryRouteImport } from './routes/_app.history'
+import { Route as AppEntryRouteImport } from './routes/_app.entry'
+import { Route as AppDashboardRouteImport } from './routes/_app.dashboard'
+import { Route as AppAdminRouteImport } from './routes/_app.admin'
 import { Route as AppFleetIndexRouteImport } from './routes/_app.fleet.index'
-import { Route as AppFleetAddDriverRouteImport } from './routes/_app.fleet.add-driver'
-import { Route as AppFleetDriversRouteImport } from './routes/_app.fleet.drivers'
 import { Route as AppFleetManageDriversRouteImport } from './routes/_app.fleet.manage-drivers'
+import { Route as AppFleetDriversRouteImport } from './routes/_app.fleet.drivers'
+import { Route as AppFleetAddDriverRouteImport } from './routes/_app.fleet.add-driver'
+import { Route as AppAdminRiderIdRouteImport } from './routes/_app.admin.$riderId'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppRoute = AppRouteImport.update({
-  id: '/_app',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminLoginRoute = AdminLoginRouteImport.update({
-  id: '/admin-login',
-  path: '/admin-login',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -47,39 +37,23 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const OnboardingRoute = OnboardingRouteImport.update({
-  id: '/onboarding',
-  path: '/onboarding',
+const AdminLoginRoute = AdminLoginRouteImport.update({
+  id: '/admin-login',
+  path: '/admin-login',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
+const AppRoute = AppRouteImport.update({
+  id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppAdminRoute = AppAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AppRoute,
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppDashboardRoute = AppDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppEntryRoute = AppEntryRouteImport.update({
-  id: '/entry',
-  path: '/entry',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppHistoryRoute = AppHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppProfileRoute = AppProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+const AppSettingsRoute = AppSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
   getParentRoute: () => AppRoute,
 } as any)
 const AppReportsRoute = AppReportsRouteImport.update({
@@ -87,29 +61,34 @@ const AppReportsRoute = AppReportsRouteImport.update({
   path: '/reports',
   getParentRoute: () => AppRoute,
 } as any)
-const AppSettingsRoute = AppSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
+const AppProfileRoute = AppProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AppRoute,
 } as any)
-const AppAdminRiderIdRoute = AppAdminRiderIdRouteImport.update({
-  id: '/$riderId',
-  path: '/$riderId',
-  getParentRoute: () => AppAdminRoute,
+const AppHistoryRoute = AppHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEntryRoute = AppEntryRouteImport.update({
+  id: '/entry',
+  path: '/entry',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppDashboardRoute = AppDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRoute = AppAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AppRoute,
 } as any)
 const AppFleetIndexRoute = AppFleetIndexRouteImport.update({
   id: '/fleet/',
   path: '/fleet/',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFleetAddDriverRoute = AppFleetAddDriverRouteImport.update({
-  id: '/fleet/add-driver',
-  path: '/fleet/add-driver',
-  getParentRoute: () => AppRoute,
-} as any)
-const AppFleetDriversRoute = AppFleetDriversRouteImport.update({
-  id: '/fleet/drivers',
-  path: '/fleet/drivers',
   getParentRoute: () => AppRoute,
 } as any)
 const AppFleetManageDriversRoute = AppFleetManageDriversRouteImport.update({
@@ -117,12 +96,26 @@ const AppFleetManageDriversRoute = AppFleetManageDriversRouteImport.update({
   path: '/fleet/manage-drivers',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFleetDriversRoute = AppFleetDriversRouteImport.update({
+  id: '/fleet/drivers',
+  path: '/fleet/drivers',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppFleetAddDriverRoute = AppFleetAddDriverRouteImport.update({
+  id: '/fleet/add-driver',
+  path: '/fleet/add-driver',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminRiderIdRoute = AppAdminRiderIdRouteImport.update({
+  id: '/$riderId',
+  path: '/$riderId',
+  getParentRoute: () => AppAdminRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
-  '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AppAdminRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
@@ -141,7 +134,6 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
-  '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/admin': typeof AppAdminRouteWithChildren
   '/dashboard': typeof AppDashboardRoute
@@ -162,7 +154,6 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/admin-login': typeof AdminLoginRoute
   '/auth': typeof AuthRoute
-  '/onboarding': typeof OnboardingRoute
   '/reset-password': typeof ResetPasswordRoute
   '/_app/admin': typeof AppAdminRouteWithChildren
   '/_app/dashboard': typeof AppDashboardRoute
@@ -183,7 +174,6 @@ export interface FileRouteTypes {
     | '/'
     | '/admin-login'
     | '/auth'
-    | '/onboarding'
     | '/reset-password'
     | '/admin'
     | '/dashboard'
@@ -202,7 +192,6 @@ export interface FileRouteTypes {
     | '/'
     | '/admin-login'
     | '/auth'
-    | '/onboarding'
     | '/reset-password'
     | '/admin'
     | '/dashboard'
@@ -222,7 +211,6 @@ export interface FileRouteTypes {
     | '/_app'
     | '/admin-login'
     | '/auth'
-    | '/onboarding'
     | '/reset-password'
     | '/_app/admin'
     | '/_app/dashboard'
@@ -243,31 +231,16 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AdminLoginRoute: typeof AdminLoginRoute
   AuthRoute: typeof AuthRoute
-  OnboardingRoute: typeof OnboardingRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_app': {
-      id: '/_app'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AppRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin-login': {
-      id: '/admin-login'
-      path: '/admin-login'
-      fullPath: '/admin-login'
-      preLoaderRoute: typeof AdminLoginRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -277,53 +250,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/onboarding': {
-      id: '/onboarding'
-      path: '/onboarding'
-      fullPath: '/onboarding'
-      preLoaderRoute: typeof OnboardingRouteImport
+    '/admin-login': {
+      id: '/admin-login'
+      path: '/admin-login'
+      fullPath: '/admin-login'
+      preLoaderRoute: typeof AdminLoginRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
+    '/_app': {
+      id: '/_app'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/admin': {
-      id: '/_app/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AppAdminRouteImport
-      parentRoute: typeof AppRoute
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/dashboard': {
-      id: '/_app/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AppDashboardRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/entry': {
-      id: '/_app/entry'
-      path: '/entry'
-      fullPath: '/entry'
-      preLoaderRoute: typeof AppEntryRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/history': {
-      id: '/_app/history'
-      path: '/history'
-      fullPath: '/history'
-      preLoaderRoute: typeof AppHistoryRouteImport
-      parentRoute: typeof AppRoute
-    }
-    '/_app/profile': {
-      id: '/_app/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof AppProfileRouteImport
+    '/_app/settings': {
+      id: '/_app/settings'
+      path: '/settings'
+      fullPath: '/settings'
+      preLoaderRoute: typeof AppSettingsRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/reports': {
@@ -333,19 +285,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppReportsRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/settings': {
-      id: '/_app/settings'
-      path: '/settings'
-      fullPath: '/settings'
-      preLoaderRoute: typeof AppSettingsRouteImport
+    '/_app/profile': {
+      id: '/_app/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AppProfileRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/admin/$riderId': {
-      id: '/_app/admin/$riderId'
-      path: '/$riderId'
-      fullPath: '/admin/$riderId'
-      preLoaderRoute: typeof AppAdminRiderIdRouteImport
-      parentRoute: typeof AppAdminRoute
+    '/_app/history': {
+      id: '/_app/history'
+      path: '/history'
+      fullPath: '/history'
+      preLoaderRoute: typeof AppHistoryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/entry': {
+      id: '/_app/entry'
+      path: '/entry'
+      fullPath: '/entry'
+      preLoaderRoute: typeof AppEntryRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/dashboard': {
+      id: '/_app/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AppDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin': {
+      id: '/_app/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AppAdminRouteImport
+      parentRoute: typeof AppRoute
     }
     '/_app/fleet/': {
       id: '/_app/fleet/'
@@ -354,11 +327,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFleetIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/fleet/add-driver': {
-      id: '/_app/fleet/add-driver'
-      path: '/fleet/add-driver'
-      fullPath: '/fleet/add-driver'
-      preLoaderRoute: typeof AppFleetAddDriverRouteImport
+    '/_app/fleet/manage-drivers': {
+      id: '/_app/fleet/manage-drivers'
+      path: '/fleet/manage-drivers'
+      fullPath: '/fleet/manage-drivers'
+      preLoaderRoute: typeof AppFleetManageDriversRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/fleet/drivers': {
@@ -368,12 +341,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFleetDriversRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/fleet/manage-drivers': {
-      id: '/_app/fleet/manage-drivers'
-      path: '/fleet/manage-drivers'
-      fullPath: '/fleet/manage-drivers'
-      preLoaderRoute: typeof AppFleetManageDriversRouteImport
+    '/_app/fleet/add-driver': {
+      id: '/_app/fleet/add-driver'
+      path: '/fleet/add-driver'
+      fullPath: '/fleet/add-driver'
+      preLoaderRoute: typeof AppFleetAddDriverRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_app/admin/$riderId': {
+      id: '/_app/admin/$riderId'
+      path: '/$riderId'
+      fullPath: '/admin/$riderId'
+      preLoaderRoute: typeof AppAdminRiderIdRouteImport
+      parentRoute: typeof AppAdminRoute
     }
   }
 }
@@ -425,19 +405,8 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AdminLoginRoute: AdminLoginRoute,
   AuthRoute: AuthRoute,
-  OnboardingRoute: OnboardingRoute,
   ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}

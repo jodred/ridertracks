@@ -14,7 +14,7 @@ import {
 } from "lucide-react";
 import type { ReactNode } from "react";
 import { GlobalDateRangePicker } from "./GlobalDateRangePicker";
-import { useStore } from "../../lib/trackuber/Ridetracks";
+import { useStore } from "../../lib/trackuber/store";
 import { useAuth } from "../../lib/auth/AuthProvider";
 
 interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; adminOnly?: boolean }
@@ -99,7 +99,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
           <div>
             <div className="text-sm font-semibold tracking-tight">RideTracks</div>
-            <div className="text-xs text-muted-foreground">{state.fleet.fleetName || "—"}</div>
+            <div className="text-xs text-muted-foreground">{state.fleet.fleetName}</div>
           </div>
         </Link>
         <nav className="flex flex-col gap-1">
@@ -125,7 +125,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto space-y-2">
           <div className="rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
-            <div className="font-medium text-foreground">{state.profile.driverName || state.fleet.fleetName || "Account"}</div>
+            <div className="font-medium text-foreground">{state.profile.driverName || "Driver"}</div>
             <div className="truncate">{user?.email || state.profile.email || "—"}</div>
           </div>
           <button
