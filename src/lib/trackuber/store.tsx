@@ -11,7 +11,7 @@ const WORKSPACE_PREFIX = "trackuber_v2_workspace:";
 const GUEST_KEY = "guest";
 
 const ridesFleet: FleetSettings = {
-  fleetName: "Eternis",
+  fleetName: "Your Fleet Partner",
   weeklyAppFee: 50,
   currency: "zł",
   firstDayOfWeek: 1,
@@ -33,7 +33,7 @@ const foodsFleet: FleetSettings = {
 const ridesProfile: Profile = {
   driverName: "Driver",
   email: "",
-  fleetName: "Eternis",
+  fleetName: "Your Fleet Partner",
   vehicle: "",
   registration: "",
   memberSince: new Date().toISOString().slice(0, 10),
@@ -138,7 +138,25 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
   const [hydrated, setHydrated] = useState(false);
   const remoteReadyRef = useRef(false);
 
-  async function loadRemote(uid: string, ws: Workspace): Promise<AppState | null> {
+  async function loadFleetPartnerName(uid: string): Promise<string | null> {
+    const { data } = await supabase
+      .from("profiles")
+      .select("fleet_partner_name")
+      .eq("id", uid)
+      .maybeSingle();
+    return data?.fleet_partner_name?.trim() || null;
+  }
+
+  function applyFleetPartnerName(appState: AppState, fleetPartnerName: string | null): AppState {
+    if (!fleetPartnerName) return appState;
+    return {
+      ...appState,
+      fleet: { ...appState.fleet, fleetName: fleetPartnerName },
+      profile: { ...appState.profile, fleetName: fleetPartnerName },
+    };
+  }
+
+  async function loadRemote(uid: string, ws: Workspace, fleetPartnerName: string | null): Promise<AppState | null> {
     const { data, error } = await supabase
       .from("user_data")
       .select("entries, fleet, profile")
@@ -147,26 +165,20 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
       .maybeSingle();
     if (error || !data) return null;
     
-    // Load fleet name from user's profile if it exists
-    const { data: profileData } = await supabase
-      .from("profiles")
-      .select("display_name, account_type")
-      .eq("id", uid)
-      .maybeSingle();
-    
     const dFleet = defaultFleetFor(ws);
     const dProfile = defaultProfileFor(ws);
     const fleet = { ...dFleet, ...((data.fleet as unknown) as Partial<FleetSettings>) };
     
-    // Auto-load fleet/business name from profile for both drivers and fleet partners
-    if (profileData?.display_name) {
-      fleet.fleetName = profileData.display_name;
-    }
+    if (fleetPartnerName) fleet.fleetName = fleetPartnerName;
     
     return {
       entries: (data.entries as unknown as AppState["entries"]) ?? {},
       fleet,
-      profile: { ...dProfile, ...((data.profile as unknown) as Partial<Profile>) },
+      profile: {
+        ...dProfile,
+        ...((data.profile as unknown) as Partial<Profile>),
+        ...(fleetPartnerName ? { fleetName: fleetPartnerName } : {}),
+      },
     };
   }
 
@@ -175,12 +187,14 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
     setUserKey(key);
     setWorkspaceState(ws);
     const local = loadState(key, ws);
-    setState(local);
+    const fleetPartnerName = uid ? await loadFleetPartnerName(uid) : null;
+    const localWithFleetPartner = applyFleetPartnerName(local, fleetPartnerName);
+    setState(localWithFleetPartner);
     setRangeState(loadRange(key, ws));
     setHydrated(true);
     if (uid) {
       remoteReadyRef.current = false;
-      const remote = await loadRemote(uid, ws);
+      const remote = await loadRemote(uid, ws, fleetPartnerName);
       if (remote) {
         setState(remote);
       } else {
@@ -188,9 +202,9 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
           {
             user_id: uid,
             workspace: ws,
-            entries: local.entries as any,
-            fleet: local.fleet as any,
-            profile: local.profile as any,
+            entries: localWithFleetPartner.entries as any,
+            fleet: localWithFleetPartner.fleet as any,
+            profile: localWithFleetPartner.profile as any,
           },
           { onConflict: "user_id,workspace" },
         );

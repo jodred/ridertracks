@@ -92,7 +92,11 @@ function AuthPage() {
       password,
       options: {
         emailRedirectTo: window.location.origin + "/dashboard",
-        data: { display_name: displayName, account_type: accountType, fleet_name: fleetName || null },
+        data: {
+          display_name: displayName.trim(),
+          account_type: accountType,
+          fleet_partner_name: fleetName.trim(),
+        },
       },
     });
     setBusy(false);
@@ -197,8 +201,20 @@ function AuthPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="su-name">{accountType === "fleet" ? "Fleet Partner Name" : "Name"}</Label>
+                    <Label htmlFor="su-name">Your name</Label>
                     <Input id="su-name" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="su-fleet-name">Fleet Partner Name</Label>
+                    <Input
+                      id="su-fleet-name"
+                      required
+                      maxLength={100}
+                      placeholder="e.g. CityRide Partners"
+                      value={fleetName}
+                      onChange={(e) => setFleetName(e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Shown throughout your driver and fleet workspace.</p>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="su-email">Email</Label>

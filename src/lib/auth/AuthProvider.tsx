@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     async function loadAccountType(u: User) {
       const { data } = await supabase
         .from("profiles")
-        .select("account_type")
+        .select("account_type, fleet_partner_name")
         .eq("id", u.id)
         .maybeSingle();
 
@@ -56,20 +56,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? (localStorage.getItem(PENDING_ACCOUNT_TYPE_KEY) as AccountType | null)
           : null);
 
-      const fleetNameFromMeta = u.user_metadata?.["fleet_name"] as string | undefined;
+      const fleetPartnerName = (
+        u.user_metadata?.["fleet_partner_name"] ?? u.user_metadata?.["fleet_name"]
+      ) as string | undefined;
+      const profileUpdates: { account_type?: AccountType; fleet_partner_name?: string } = {};
 
-      if (desired === "fleet" && type !== "fleet") {
-        await supabase
-          .from("profiles")
-          .update({ account_type: "fleet", display_name: fleetNameFromMeta || data?.display_name })
-          .eq("id", u.id);
-        type = "fleet";
-      } else if (fleetNameFromMeta && !data?.display_name) {
-        // For drivers, save fleet_name to display_name if provided
-        await supabase
-          .from("profiles")
-          .update({ display_name: fleetNameFromMeta })
-          .eq("id", u.id);
+      if (desired && type !== desired) {
+        profileUpdates.account_type = desired;
+        type = desired;
+      }
+      if (fleetPartnerName?.trim() && data?.fleet_partner_name !== fleetPartnerName.trim()) {
+        profileUpdates.fleet_partner_name = fleetPartnerName.trim();
+      }
+      if (Object.keys(profileUpdates).length > 0) {
+        await supabase.from("profiles").update(profileUpdates).eq("id", u.id);
       }
       if (typeof window !== "undefined") localStorage.removeItem(PENDING_ACCOUNT_TYPE_KEY);
       if (mounted) setAccountType(type ?? "driver");
