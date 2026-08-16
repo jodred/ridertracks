@@ -10,7 +10,6 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { TrackUberProvider } from "../lib/trackuber/store";
 import { Toaster } from "../components/ui/sonner";
 import { AuthProvider } from "../lib/auth/AuthProvider";
@@ -40,9 +39,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -89,8 +85,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "RideTracks — Track every ride. Know every złoty." },
       { name: "twitter:description", content: "RideTracks is the all-in-one business dashboard for taxi and rideshare drivers. Track earnings, expenses, fleet deductions, cash payments, and profit with complete clarity." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8537e2e2-222b-4f79-8380-aefb8b3b9542/id-preview-1f108b97--3927999e-9f48-4b34-8729-62669443321f.lovable.app-1784810234095.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/8537e2e2-222b-4f79-8380-aefb8b3b9542/id-preview-1f108b97--3927999e-9f48-4b34-8729-62669443321f.lovable.app-1784810234095.png" },
+
     ],
     links: [
       { rel: "stylesheet", href: appCss },
