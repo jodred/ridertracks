@@ -3,8 +3,6 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Car } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable/index";
-
 
 import { PENDING_ACCOUNT_TYPE_KEY, type AccountType } from "@/lib/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -52,15 +50,26 @@ function AuthPage() {
   async function handleGoogle() {
     setBusy(true);
     if (mode === "signup") localStorage.setItem(PENDING_ACCOUNT_TYPE_KEY, accountType);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin + "/auth",
+
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        redirectTo: window.location.origin + "/auth",
+      },
     });
-    if (result.error) {
-      toast.error(result.error.message || "Google sign-in failed");
+
+    if (error) {
+      toast.error(error.message || "Google sign-in failed");
       setBusy(false);
       return;
     }
-    if (result.redirected) return;
+
+    if (data?.url) {
+      window.location.href = data.url;
+      return;
+    }
+
+    setBusy(false);
     goHome();
   }
 
