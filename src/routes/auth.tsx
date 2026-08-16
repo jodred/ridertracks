@@ -92,7 +92,7 @@ function AuthPage() {
       password,
       options: {
         emailRedirectTo: window.location.origin + "/dashboard",
-        data: { display_name: displayName, account_type: accountType, fleet_name: accountType === "fleet" ? fleetName : null },
+        data: { display_name: displayName, account_type: accountType, fleet_name: fleetName || null },
       },
     });
     setBusy(false);
@@ -200,12 +200,10 @@ function AuthPage() {
                     <Label htmlFor="su-name">{accountType === "fleet" ? "Company name" : "Name"}</Label>
                     <Input id="su-name" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
                   </div>
-                  {accountType === "fleet" && (
-                    <div className="space-y-2">
-                      <Label htmlFor="su-fleet-name">Fleet name</Label>
-                      <Input id="su-fleet-name" required value={fleetName} onChange={(e) => setFleetName(e.target.value)} placeholder="e.g., John's Uber Fleet" />
-                    </div>
-                  )}
+                  <div className="space-y-2">
+                    <Label htmlFor="su-fleet-name">{accountType === "fleet" ? "Fleet name" : "Fleet/Business name (optional)"}</Label>
+                    <Input id="su-fleet-name" value={fleetName} onChange={(e) => setFleetName(e.target.value)} placeholder={accountType === "fleet" ? "e.g., John's Uber Fleet" : "e.g., Uber, Bolt, etc."} required={accountType === "fleet"} />
+                  </div>
                   <div className="space-y-2">
                     <Label htmlFor="su-email">Email</Label>
                     <Input id="su-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />

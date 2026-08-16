@@ -64,6 +64,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           .update({ account_type: "fleet", display_name: fleetNameFromMeta || data?.display_name })
           .eq("id", u.id);
         type = "fleet";
+      } else if (fleetNameFromMeta && !data?.display_name) {
+        // For drivers, save fleet_name to display_name if provided
+        await supabase
+          .from("profiles")
+          .update({ display_name: fleetNameFromMeta })
+          .eq("id", u.id);
       }
       if (typeof window !== "undefined") localStorage.removeItem(PENDING_ACCOUNT_TYPE_KEY);
       if (mounted) setAccountType(type ?? "driver");

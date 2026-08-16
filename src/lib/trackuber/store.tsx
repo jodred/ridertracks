@@ -158,8 +158,8 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
     const dProfile = defaultProfileFor(ws);
     const fleet = { ...dFleet, ...((data.fleet as unknown) as Partial<FleetSettings>) };
     
-    // If user is a fleet partner, use their display_name as fleet name
-    if (profileData?.account_type === "fleet" && profileData.display_name) {
+    // Auto-load fleet/business name from profile for both drivers and fleet partners
+    if (profileData?.display_name) {
       fleet.fleetName = profileData.display_name;
     }
     
