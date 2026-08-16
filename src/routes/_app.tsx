@@ -8,12 +8,25 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppGate() {
-  const { user, loading } = useAuth();
+  const { user, loading, accountType } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && !user) navigate({ to: "/auth", replace: true });
-  }, [user, loading, navigate]);
+    if (loading) return;
+    
+    if (!user) {
+      navigate({ to: "/auth", replace: true });
+      return;
+    }
+
+    // Redirect to appropriate dashboard based on account type
+    const pathname = window.location.pathname;
+    if (accountType === "driver" && pathname.includes("/fleet")) {
+      navigate({ to: "/dashboard", replace: true });
+    } else if (accountType === "fleet" && !pathname.includes("/fleet")) {
+      navigate({ to: "/fleet", replace: true });
+    }
+  }, [user, loading, accountType, navigate]);
 
   if (loading || !user) {
     return (

@@ -146,11 +146,26 @@ export function TrackUberProvider({ children }: { children: ReactNode }) {
       .eq("workspace", ws)
       .maybeSingle();
     if (error || !data) return null;
+    
+    // Load fleet name from user's profile if it exists
+    const { data: profileData } = await supabase
+      .from("profiles")
+      .select("display_name, account_type")
+      .eq("id", uid)
+      .maybeSingle();
+    
     const dFleet = defaultFleetFor(ws);
     const dProfile = defaultProfileFor(ws);
+    const fleet = { ...dFleet, ...((data.fleet as unknown) as Partial<FleetSettings>) };
+    
+    // If user is a fleet partner, use their display_name as fleet name
+    if (profileData?.account_type === "fleet" && profileData.display_name) {
+      fleet.fleetName = profileData.display_name;
+    }
+    
     return {
       entries: (data.entries as unknown as AppState["entries"]) ?? {},
-      fleet: { ...dFleet, ...((data.fleet as unknown) as Partial<FleetSettings>) },
+      fleet,
       profile: { ...dProfile, ...((data.profile as unknown) as Partial<Profile>) },
     };
   }

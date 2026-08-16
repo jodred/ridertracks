@@ -56,8 +56,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           ? (localStorage.getItem(PENDING_ACCOUNT_TYPE_KEY) as AccountType | null)
           : null);
 
+      const fleetNameFromMeta = u.user_metadata?.["fleet_name"] as string | undefined;
+
       if (desired === "fleet" && type !== "fleet") {
-        await supabase.from("profiles").update({ account_type: "fleet" }).eq("id", u.id);
+        await supabase
+          .from("profiles")
+          .update({ account_type: "fleet", display_name: fleetNameFromMeta || data?.display_name })
+          .eq("id", u.id);
         type = "fleet";
       }
       if (typeof window !== "undefined") localStorage.removeItem(PENDING_ACCOUNT_TYPE_KEY);

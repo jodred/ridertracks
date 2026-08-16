@@ -28,6 +28,7 @@ function AuthPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [fleetName, setFleetName] = useState("");
   const [busy, setBusy] = useState(false);
   const [accountType, setAccountType] = useState<AccountType>("driver");
 
@@ -91,7 +92,7 @@ function AuthPage() {
       password,
       options: {
         emailRedirectTo: window.location.origin + "/dashboard",
-        data: { display_name: displayName, account_type: accountType },
+        data: { display_name: displayName, account_type: accountType, fleet_name: accountType === "fleet" ? fleetName : null },
       },
     });
     setBusy(false);
@@ -199,6 +200,12 @@ function AuthPage() {
                     <Label htmlFor="su-name">{accountType === "fleet" ? "Company name" : "Name"}</Label>
                     <Input id="su-name" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
                   </div>
+                  {accountType === "fleet" && (
+                    <div className="space-y-2">
+                      <Label htmlFor="su-fleet-name">Fleet name</Label>
+                      <Input id="su-fleet-name" required value={fleetName} onChange={(e) => setFleetName(e.target.value)} placeholder="e.g., John's Uber Fleet" />
+                    </div>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="su-email">Email</Label>
                     <Input id="su-email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
