@@ -50,15 +50,18 @@ function AuthPage() {
   async function handleGoogle() {
     setBusy(true);
     if (mode === "signup") localStorage.setItem(PENDING_ACCOUNT_TYPE_KEY, accountType);
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.origin + "/auth" },
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin + "/auth",
     });
-    if (error) {
-      toast.error(error.message || "Google sign-in failed");
+    if (result.error) {
+      toast.error(result.error.message || "Google sign-in failed");
       setBusy(false);
+      return;
     }
+    if (result.redirected) return;
+    goHome();
   }
+
 
   async function handleSignIn(e: React.FormEvent) {
     e.preventDefault();
