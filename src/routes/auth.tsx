@@ -54,7 +54,7 @@ function AuthPage() {
     const { data, error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: window.location.origin + "/auth",
+        redirectTo: "https://ridetracks.com/auth",
       },
     });
 
