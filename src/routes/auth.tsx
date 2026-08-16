@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Car } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable/index";
+
 
 import { PENDING_ACCOUNT_TYPE_KEY, type AccountType } from "@/lib/auth/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -207,9 +209,6 @@ function AuthPage() {
           )}
         </div>
 
-        <p className="mt-6 text-center text-xs text-muted-foreground">
-          Are you an admin? <Link to="/admin-login" className="text-primary hover:underline">Admin sign in</Link>
-        </p>
       </div>
     </div>
   );
