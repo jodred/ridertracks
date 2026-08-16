@@ -24,13 +24,14 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "google-complete">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [fleetName, setFleetName] = useState("");
   const [busy, setBusy] = useState(false);
   const [accountType, setAccountType] = useState<AccountType>("driver");
+  const [googleUserId, setGoogleUserId] = useState<string | null>(null);
 
   async function goHome() {
     const { data } = await supabase.auth.getUser();
@@ -43,9 +44,46 @@ function AuthPage() {
   }
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) goHome();
-    });
+    async function handleExistingSession() {
+      const { data } = await supabase.auth.getSession();
+      const user = data.session?.user;
+      if (!user) return;
+
+      const isGoogleUser =
+        user.app_metadata?.provider === "google" ||
+        (user.app_metadata?.providers as string[] | undefined)?.includes("google");
+
+      if (isGoogleUser) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("fleet_partner_name")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (!profile?.fleet_partner_name?.trim()) {
+          const metadata = user.user_metadata ?? {};
+          setGoogleUserId(user.id);
+          setEmail(user.email ?? "");
+          setDisplayName(
+            (metadata["full_name"] as string | undefined) ??
+              (metadata["name"] as string | undefined) ??
+              (metadata["display_name"] as string | undefined) ??
+              "",
+          );
+          setFleetName((metadata["fleet_partner_name"] as string | undefined) ?? "");
+          const requestedAccountType =
+            localStorage.getItem(PENDING_ACCOUNT_TYPE_KEY) ??
+            (metadata["account_type"] as string | undefined);
+          setAccountType(requestedAccountType === "fleet" ? "fleet" : "driver");
+          setMode("google-complete");
+          return;
+        }
+      }
+
+      goHome();
+    }
+
+    handleExistingSession();
   }, [navigate]);
 
   async function handleGoogle() {
@@ -105,6 +143,42 @@ function AuthPage() {
     setMode("signin");
   }
 
+  async function handleGoogleProfileComplete(e: React.FormEvent) {
+    e.preventDefault();
+    const name = displayName.trim();
+    const partnerName = fleetName.trim();
+    if (!name || !partnerName || !googleUserId) return;
+
+    setBusy(true);
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .upsert({
+        id: googleUserId,
+        email,
+        display_name: name,
+        fleet_partner_name: partnerName,
+        account_type: accountType,
+      }, { onConflict: "id" });
+
+    if (profileError) {
+      setBusy(false);
+      return toast.error(profileError.message);
+    }
+
+    const { error: userError } = await supabase.auth.updateUser({
+      data: {
+        display_name: name,
+        fleet_partner_name: partnerName,
+        account_type: accountType,
+      },
+    });
+    setBusy(false);
+    if (userError) return toast.error(userError.message);
+
+    localStorage.removeItem(PENDING_ACCOUNT_TYPE_KEY);
+    goHome();
+  }
+
   async function handleForgot(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true);
@@ -128,7 +202,45 @@ function AuthPage() {
         </Link>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
-          {mode === "forgot" ? (
+          {mode === "google-complete" ? (
+            <form onSubmit={handleGoogleProfileComplete} className="space-y-4">
+              <div>
+                <h1 className="text-xl font-semibold tracking-tight">Complete your profile</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  We filled in your Google details. Add your Fleet Partner Name to continue.
+                </p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="google-name">Your name</Label>
+                <Input
+                  id="google-name"
+                  required
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="google-email">Email</Label>
+                <Input id="google-email" type="email" value={email} disabled readOnly />
+                <p className="text-xs text-muted-foreground">Your email is provided by Google and cannot be changed here.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="google-fleet-name">Fleet Partner Name</Label>
+                <Input
+                  id="google-fleet-name"
+                  required
+                  maxLength={100}
+                  placeholder="e.g. CityRide Partners"
+                  value={fleetName}
+                  onChange={(e) => setFleetName(e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">Required. This name is shown throughout your workspace.</p>
+              </div>
+              <Button type="submit" className="w-full" disabled={busy || !displayName.trim() || !fleetName.trim()}>
+                Continue to RideTracks
+              </Button>
+            </form>
+          ) : mode === "forgot" ? (
             <form onSubmit={handleForgot} className="space-y-4">
               <div>
                 <h1 className="text-xl font-semibold tracking-tight">Reset your password</h1>
