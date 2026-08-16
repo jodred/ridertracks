@@ -49,35 +49,31 @@ function AuthPage() {
       const user = data.session?.user;
       if (!user) return;
 
-      const isGoogleUser =
-        user.app_metadata?.provider === "google" ||
-        (user.app_metadata?.providers as string[] | undefined)?.includes("google");
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("display_name, fleet_partner_name, account_type")
+        .eq("id", user.id)
+        .maybeSingle();
 
-      if (isGoogleUser) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("fleet_partner_name")
-          .eq("id", user.id)
-          .maybeSingle();
-
-        if (!profile?.fleet_partner_name?.trim()) {
-          const metadata = user.user_metadata ?? {};
-          setGoogleUserId(user.id);
-          setEmail(user.email ?? "");
-          setDisplayName(
-            (metadata["full_name"] as string | undefined) ??
-              (metadata["name"] as string | undefined) ??
-              (metadata["display_name"] as string | undefined) ??
-              "",
-          );
-          setFleetName((metadata["fleet_partner_name"] as string | undefined) ?? "");
-          const requestedAccountType =
-            localStorage.getItem(PENDING_ACCOUNT_TYPE_KEY) ??
-            (metadata["account_type"] as string | undefined);
-          setAccountType(requestedAccountType === "fleet" ? "fleet" : "driver");
-          setMode("google-complete");
-          return;
-        }
+      if (!profile?.fleet_partner_name?.trim()) {
+        const metadata = user.user_metadata ?? {};
+        setGoogleUserId(user.id);
+        setEmail(user.email ?? "");
+        setDisplayName(
+          (metadata["full_name"] as string | undefined) ??
+            (metadata["name"] as string | undefined) ??
+            (metadata["display_name"] as string | undefined) ??
+            profile?.display_name ??
+            "",
+        );
+        setFleetName((metadata["fleet_partner_name"] as string | undefined) ?? "");
+        const requestedAccountType =
+          localStorage.getItem(PENDING_ACCOUNT_TYPE_KEY) ??
+          (metadata["account_type"] as string | undefined) ??
+          profile?.account_type;
+        setAccountType(requestedAccountType === "fleet" ? "fleet" : "driver");
+        setMode("google-complete");
+        return;
       }
 
       goHome();
@@ -207,7 +203,7 @@ function AuthPage() {
               <div>
                 <h1 className="text-xl font-semibold tracking-tight">Complete your profile</h1>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  We filled in your Google details. Add your Fleet Partner Name to continue.
+                  Confirm your details and add your Fleet Partner Name to continue. You will only be asked once.
                 </p>
               </div>
               <div className="space-y-2">
@@ -222,7 +218,7 @@ function AuthPage() {
               <div className="space-y-2">
                 <Label htmlFor="google-email">Email</Label>
                 <Input id="google-email" type="email" value={email} disabled readOnly />
-                <p className="text-xs text-muted-foreground">Your email is provided by Google and cannot be changed here.</p>
+                <p className="text-xs text-muted-foreground">Your sign-in email cannot be changed here.</p>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="google-fleet-name">Fleet Partner Name</Label>

@@ -9,6 +9,7 @@ interface AuthCtx {
   user: User | null;
   isAdmin: boolean;
   accountType: AccountType | null;
+  needsFleetPartnerName: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
 }
@@ -17,6 +18,7 @@ const Ctx = createContext<AuthCtx>({
   user: null,
   isAdmin: false,
   accountType: null,
+  needsFleetPartnerName: false,
   loading: true,
   signOut: async () => {},
 });
@@ -25,6 +27,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [accountType, setAccountType] = useState<AccountType | null>(null);
+  const [needsFleetPartnerName, setNeedsFleetPartnerName] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -72,7 +75,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await supabase.from("profiles").update(profileUpdates).eq("id", u.id);
       }
       if (typeof window !== "undefined") localStorage.removeItem(PENDING_ACCOUNT_TYPE_KEY);
-      if (mounted) setAccountType(type ?? "driver");
+      if (mounted) {
+        setAccountType(type ?? "driver");
+        setNeedsFleetPartnerName(!data?.fleet_partner_name?.trim());
+      }
     }
 
     supabase.auth.getSession().then(({ data }) => {
@@ -95,6 +101,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         setIsAdmin(false);
         setAccountType(null);
+        setNeedsFleetPartnerName(false);
       }
     });
 
@@ -110,6 +117,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         isAdmin,
         accountType,
+        needsFleetPartnerName,
         loading,
         signOut: async () => {
           await supabase.auth.signOut();

@@ -71,8 +71,9 @@ function SettingsPage() {
           <div className="text-sm font-semibold">Fleet Settings</div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-2">
-              <Label>Fleet Name</Label>
-              <Input value={fleet.fleetName} onChange={(e) => updateFleet({ fleetName: e.target.value })} className="rounded-xl" />
+              <Label>Fleet Partner Name</Label>
+              <Input value={fleet.fleetName} readOnly disabled className="rounded-xl" />
+              <p className="text-xs text-muted-foreground">Set once during account setup and saved to your secure profile.</p>
             </div>
             <div className="space-y-2">
               <Label>Weekly App Fee</Label>

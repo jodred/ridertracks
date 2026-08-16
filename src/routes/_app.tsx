@@ -8,13 +8,18 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppGate() {
-  const { user, loading, accountType } = useAuth();
+  const { user, loading, accountType, needsFleetPartnerName } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (loading) return;
     
     if (!user) {
+      navigate({ to: "/auth", replace: true });
+      return;
+    }
+
+    if (needsFleetPartnerName) {
       navigate({ to: "/auth", replace: true });
       return;
     }
@@ -28,7 +33,7 @@ function AppGate() {
     }
   }, [user, loading, accountType, navigate]);
 
-  if (loading || !user) {
+  if (loading || !user || needsFleetPartnerName) {
     return (
       <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">
         Loading…
