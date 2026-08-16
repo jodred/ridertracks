@@ -4,6 +4,21 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AccountType = "driver" | "fleet";
 export const PENDING_ACCOUNT_TYPE_KEY = "ridetracks_pending_account_type";
+const RIDETRACKS_STORAGE_PREFIXES = ["trackuber_v2_", "ridetracks_"];
+
+function clearRideTracksBrowserData() {
+  if (typeof window === "undefined") return;
+
+  for (const key of Object.keys(localStorage)) {
+    if (RIDETRACKS_STORAGE_PREFIXES.some((prefix) => key.startsWith(prefix))) {
+      localStorage.removeItem(key);
+    }
+  }
+  sessionStorage.clear();
+  if ("caches" in window) {
+    caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+  }
+}
 
 interface AuthCtx {
   user: User | null;
@@ -121,6 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         loading,
         signOut: async () => {
           await supabase.auth.signOut();
+          clearRideTracksBrowserData();
         },
       }}
     >

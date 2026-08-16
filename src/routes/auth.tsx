@@ -24,7 +24,7 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "google-complete">("signin");
+  const [mode, setMode] = useState<"signin" | "signup" | "forgot" | "google-account-type" | "google-complete">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
@@ -67,12 +67,14 @@ function AuthPage() {
             "",
         );
         setFleetName((metadata["fleet_partner_name"] as string | undefined) ?? "");
-        const requestedAccountType =
-          localStorage.getItem(PENDING_ACCOUNT_TYPE_KEY) ??
-          (metadata["account_type"] as string | undefined) ??
-          profile?.account_type;
-        setAccountType(requestedAccountType === "fleet" ? "fleet" : "driver");
-        setMode("google-complete");
+        const savedAccountType =
+          (metadata["account_type"] as string | undefined) ?? profile?.account_type;
+        if (metadata["registration_completed"] === true) {
+          setAccountType(savedAccountType === "fleet" ? "fleet" : "driver");
+          setMode("google-complete");
+        } else {
+          setMode("google-account-type");
+        }
         return;
       }
 
@@ -166,6 +168,7 @@ function AuthPage() {
         display_name: name,
         fleet_partner_name: partnerName,
         account_type: accountType,
+        registration_completed: true,
       },
     });
     setBusy(false);
@@ -173,6 +176,11 @@ function AuthPage() {
 
     localStorage.removeItem(PENDING_ACCOUNT_TYPE_KEY);
     goHome();
+  }
+
+  function continueGoogleRegistration(type: AccountType) {
+    setAccountType(type);
+    setMode("google-complete");
   }
 
   async function handleForgot(e: React.FormEvent) {
@@ -198,16 +206,43 @@ function AuthPage() {
         </Link>
 
         <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
-          {mode === "google-complete" ? (
+          {mode === "google-account-type" ? (
+            <div className="space-y-4">
+              <div>
+                <h1 className="text-xl font-semibold tracking-tight">How will you use RideTracks?</h1>
+                <p className="mt-1 text-sm text-muted-foreground">Choose your account type to continue your registration.</p>
+              </div>
+              <div className="grid gap-3">
+                <button
+                  type="button"
+                  onClick={() => continueGoogleRegistration("driver")}
+                  className="rounded-xl border border-border p-4 text-left transition-colors hover:bg-secondary"
+                >
+                  <div className="text-sm font-semibold">Register as a driver</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Track your earnings and link your Fleet Partner.</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => continueGoogleRegistration("fleet")}
+                  className="rounded-xl border border-border p-4 text-left transition-colors hover:bg-secondary"
+                >
+                  <div className="text-sm font-semibold">Register as a Fleet Partner</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Set up your Fleet Partner workspace and manage drivers.</div>
+                </button>
+              </div>
+            </div>
+          ) : mode === "google-complete" ? (
             <form onSubmit={handleGoogleProfileComplete} className="space-y-4">
               <div>
-                <h1 className="text-xl font-semibold tracking-tight">Complete your profile</h1>
+                <h1 className="text-xl font-semibold tracking-tight">
+                  {accountType === "fleet" ? "Complete your Fleet Partner profile" : "Complete your driver profile"}
+                </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Confirm your details and add your Fleet Partner Name to continue. You will only be asked once.
                 </p>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="google-name">Your name</Label>
+                <Label htmlFor="google-name">{accountType === "fleet" ? "Fleet Partner contact name" : "Driver name"}</Label>
                 <Input
                   id="google-name"
                   required
@@ -230,7 +265,9 @@ function AuthPage() {
                   value={fleetName}
                   onChange={(e) => setFleetName(e.target.value)}
                 />
-                <p className="text-xs text-muted-foreground">Required. This name is shown throughout your workspace.</p>
+                <p className="text-xs text-muted-foreground">
+                  Required. {accountType === "fleet" ? "This is your Fleet Partner business name." : "Enter the Fleet Partner you drive with."}
+                </p>
               </div>
               <Button type="submit" className="w-full" disabled={busy || !displayName.trim() || !fleetName.trim()}>
                 Continue to RideTracks
