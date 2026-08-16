@@ -197,12 +197,8 @@ function AuthPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="su-name">{accountType === "fleet" ? "Company name" : "Name"}</Label>
+                    <Label htmlFor="su-name">{accountType === "fleet" ? "Fleet Partner Name" : "Name"}</Label>
                     <Input id="su-name" required value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="su-fleet-name">{accountType === "fleet" ? "Fleet name" : "Fleet/Business name (optional)"}</Label>
-                    <Input id="su-fleet-name" value={fleetName} onChange={(e) => setFleetName(e.target.value)} placeholder={accountType === "fleet" ? "e.g., John's Uber Fleet" : "e.g., Uber, Bolt, etc."} required={accountType === "fleet"} />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="su-email">Email</Label>
