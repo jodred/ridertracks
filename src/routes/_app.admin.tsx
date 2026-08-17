@@ -1,18 +1,18 @@
 import { createFileRoute, Link, Outlet, useMatches, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronRight, Users } from "lucide-react";
+import { ChevronRight, ShieldCheck, UserCheck, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "../lib/auth/AuthProvider";
-import { Card, CardContent } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
 
 export const Route = createFileRoute("/_app/admin")({
   head: () => ({
     meta: [
       { title: "Admin — RideTracks" },
-      { name: "description", content: "View all registered RideTracks drivers." },
+      { name: "description", content: "Manage RideTracks accounts and administrator access." },
       { property: "og:title", content: "Admin — RideTracks" },
-      { property: "og:description", content: "View all registered RideTracks drivers." },
+      { property: "og:description", content: "Manage RideTracks accounts and administrator access." },
     ],
   }),
   component: AdminLayout,
@@ -58,22 +58,63 @@ function AdminListPage() {
   }, [isAdmin]);
 
   const rows = useMemo(() => profiles, [profiles]);
+  const recentRows = rows.slice(0, 5);
 
   if (loading || !isAdmin) return null;
 
   return (
     <div className="flex flex-col gap-6">
+      <section className="overflow-hidden rounded-2xl border border-border bg-card shadow-card">
+        <div className="bg-gradient-to-br from-primary to-primary/75 px-5 py-7 text-primary-foreground sm:px-7">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.18em] text-primary-foreground/70">
+                <ShieldCheck className="h-4 w-4" /> Secure operations
+              </div>
+              <h1 className="mt-3 text-2xl font-semibold tracking-tight sm:text-3xl">Admin dashboard</h1>
+              <p className="mt-2 max-w-xl text-sm text-primary-foreground/80">
+                Review registered accounts and manage RideTracks operations from one protected workspace.
+              </p>
+            </div>
+            <Badge className="rounded-full bg-white/15 px-3 py-1 text-primary-foreground hover:bg-white/15">Admin access</Badge>
+          </div>
+        </div>
+      </section>
+
+      <section className="grid gap-4 sm:grid-cols-2">
+        <Card className="rounded-2xl border-border shadow-card">
+          <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Registered accounts</CardTitle>
+            <Users className="h-5 w-5 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold tracking-tight">{rows.length}</div>
+            <p className="mt-1 text-xs text-muted-foreground">Accounts visible to your administrator role</p>
+          </CardContent>
+        </Card>
+        <Card className="rounded-2xl border-border shadow-card">
+          <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+            <CardTitle className="text-sm font-medium text-muted-foreground">Administrators</CardTitle>
+            <UserCheck className="h-5 w-5 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-semibold tracking-tight">{adminIds.size}</div>
+            <p className="mt-1 text-xs text-muted-foreground">Accounts allowed into this console</p>
+          </CardContent>
+        </Card>
+      </section>
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Operations</div>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Registered drivers</h1>
+          <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Directory</div>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Recent accounts</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Everyone who has signed up for RideTracks. Click a driver to view their profile.
+            Select an account to view its profile and access details.
           </p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm">
           <Users className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium">{rows.length} drivers</span>
+          <span className="font-medium">{rows.length} total</span>
         </div>
       </div>
 
@@ -98,10 +139,10 @@ function AdminListPage() {
                 )}
                 {!fetching && rows.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-sm text-muted-foreground">No drivers registered yet.</td>
+                    <td colSpan={5} className="px-5 py-8 text-center text-sm text-muted-foreground">No accounts registered yet.</td>
                   </tr>
                 )}
-                {rows.map((r) => {
+                {recentRows.map((r) => {
                   const name = r.display_name || (r.email ? r.email.split("@")[0] : "Unnamed");
                   const initials = name
                     .split(" ")

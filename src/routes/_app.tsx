@@ -8,7 +8,7 @@ export const Route = createFileRoute("/_app")({
 });
 
 function AppGate() {
-  const { user, loading, accountType, needsFleetPartnerName } = useAuth();
+  const { user, loading, accountType, isAdmin, needsFleetPartnerName } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -19,7 +19,9 @@ function AppGate() {
       return;
     }
 
-    if (needsFleetPartnerName) {
+    // Administrators use the dedicated email/password admin console and do not
+    // participate in driver or fleet onboarding.
+    if (needsFleetPartnerName && !isAdmin) {
       navigate({ to: "/auth", replace: true });
       return;
     }
@@ -31,9 +33,9 @@ function AppGate() {
     } else if (accountType === "fleet" && !pathname.includes("/fleet")) {
       navigate({ to: "/fleet", replace: true });
     }
-  }, [user, loading, accountType, navigate]);
+  }, [user, loading, accountType, isAdmin, needsFleetPartnerName, navigate]);
 
-  if (loading || !user || needsFleetPartnerName) {
+  if (loading || !user || (needsFleetPartnerName && !isAdmin)) {
     return (
       <div className="grid min-h-screen place-items-center text-sm text-muted-foreground">
         Loading…
