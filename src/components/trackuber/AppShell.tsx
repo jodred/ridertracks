@@ -11,11 +11,13 @@ import {
   Users,
   Home,
   LogOut,
+  Menu,
 } from "lucide-react";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { GlobalDateRangePicker } from "./GlobalDateRangePicker";
 import { useStore } from "../../lib/trackuber/store";
 import { useAuth } from "../../lib/auth/AuthProvider";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; adminOnly?: boolean }
 const navItems: NavItem[] = [
@@ -55,6 +57,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { isAdmin, user, signOut, accountType } = useAuth();
   const isFleet = accountType === "fleet";
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
@@ -64,8 +67,12 @@ export function AppShell({ children }: { children: ReactNode }) {
   const visibleMobile = (isFleet ? fleetMobileNavItems : mobileNavItems).filter((i) => !i.adminOnly || isAdmin);
 
   async function handleSignOut() {
-    await signOut();
-    navigate({ to: "/auth", replace: true });
+    try {
+      await signOut();
+    } finally {
+      setMobileMenuOpen(false);
+      navigate({ to: "/auth", replace: true });
+    }
   }
 
   const workspaceToggle = (
@@ -187,7 +194,54 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           );
         })}
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(true)}
+          className="flex flex-1 flex-col items-center gap-1 py-2 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          aria-label="Open navigation menu"
+          aria-expanded={mobileMenuOpen}
+        >
+          <Menu className="h-5 w-5" />
+          <span>More</span>
+        </button>
       </nav>
+
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="bottom" className="max-h-[80dvh] rounded-t-2xl px-4 pb-8">
+          <SheetHeader className="mb-4 text-left">
+            <SheetTitle>RideTracks menu</SheetTitle>
+          </SheetHeader>
+          <nav className="grid gap-1" aria-label="Mobile navigation">
+            {visibleNav.map((item) => {
+              const active = isActive(item.to, item.exact);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className={[
+                    "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
+                    active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                  ].join(" ")}
+                >
+                  <Icon className="h-5 w-5" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+            <div className="my-2 border-t border-border" />
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <LogOut className="h-5 w-5" />
+              <span>Sign out</span>
+            </button>
+          </nav>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }

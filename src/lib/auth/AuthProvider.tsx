@@ -6,7 +6,7 @@ export type AccountType = "driver" | "fleet";
 export const PENDING_ACCOUNT_TYPE_KEY = "ridetracks_pending_account_type";
 const RIDETRACKS_STORAGE_PREFIXES = ["trackuber_v2_", "ridetracks_"];
 
-function clearRideTracksBrowserData() {
+async function clearRideTracksBrowserData() {
   if (typeof window === "undefined") return;
 
   for (const key of Object.keys(localStorage)) {
@@ -16,7 +16,7 @@ function clearRideTracksBrowserData() {
   }
   sessionStorage.clear();
   if ("caches" in window) {
-    caches.keys().then((keys) => Promise.all(keys.map((key) => caches.delete(key))));
+    await Promise.all((await caches.keys()).map((key) => caches.delete(key)));
   }
 }
 
@@ -135,8 +135,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         needsFleetPartnerName,
         loading,
         signOut: async () => {
-          await supabase.auth.signOut();
-          clearRideTracksBrowserData();
+          try {
+            const { error } = await supabase.auth.signOut({ scope: "local" });
+            if (error) throw error;
+          } finally {
+            // The local app must not retain user data, even if the network request fails.
+            await clearRideTracksBrowserData();
+          }
         },
       }}
     >
