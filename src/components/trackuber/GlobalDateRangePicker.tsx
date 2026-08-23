@@ -38,23 +38,16 @@ export function GlobalDateRangePicker() {
       : presets.find((p) => p.key === range.preset)?.label ?? "Range";
 
   const applySelection = (sel: DayPickerRange | undefined) => {
-    if (!sel?.from) return;
+    if (!sel?.from || !sel.to) return;
     const from = todayISO(sel.from);
-    const to = todayISO(sel.to ?? sel.from);
+    const to = todayISO(sel.to);
     setCustomRange(from <= to ? from : to, from <= to ? to : from);
   };
 
   return (
     <Popover
       open={open}
-      onOpenChange={(v) => {
-        setOpen(v);
-        // On close, if user picked only "from" (no "to"), apply single-day range
-        if (!v && tab === "custom" && selected?.from && !selected.to) {
-          const iso = todayISO(selected.from);
-          setCustomRange(iso, iso);
-        }
-      }}
+      onOpenChange={setOpen}
     >
       <PopoverTrigger asChild>
         <Button variant="outline" className="gap-2 rounded-full border-border bg-card px-4 shadow-soft">
@@ -104,17 +97,17 @@ export function GlobalDateRangePicker() {
               selected={selected}
               onSelect={(sel) => {
                 setSelected(sel);
-                // Apply immediately whenever there is a from date; if both from+to, close.
-                if (sel?.from) {
+                // A custom range is only active once the user has selected both dates.
+                if (sel?.from && sel.to) {
                   applySelection(sel);
-                  if (sel.to) setOpen(false);
+                  setOpen(false);
                 }
               }}
               numberOfMonths={1}
               className="pointer-events-auto"
             />
             <p className="mt-2 px-1 text-[11px] text-muted-foreground">
-              Click a date twice for a single day, or two dates for a range.
+              Select a start date, then an end date to apply a custom range.
             </p>
           </div>
         )}

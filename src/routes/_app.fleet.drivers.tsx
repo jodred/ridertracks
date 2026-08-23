@@ -399,14 +399,17 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (r: Date
             selected={selected}
             onSelect={(sel) => {
               setSelected(sel);
-              if (sel?.from) {
+              if (sel?.from && sel.to) {
                 const from = todayISO(sel.from);
-                const to = todayISO(sel.to ?? sel.from);
+                const to = todayISO(sel.to);
                 onChange({ preset: "custom", from: from <= to ? from : to, to: from <= to ? to : from });
-                if (sel.to) setOpen(false);
+                setOpen(false);
               }
             }}
           />
+          <p className="mt-2 px-1 text-[11px] text-muted-foreground">
+            Select a start date, then an end date to apply a custom range.
+          </p>
         </div>
       </PopoverContent>
     </Popover>

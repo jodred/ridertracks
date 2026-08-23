@@ -1,15 +1,18 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, CalendarDays, Pencil, Plus, Save } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, CalendarDays, ChevronDown, Pencil, Plus, Save } from "lucide-react";
+import type { DateRange as DayPickerRange } from "react-day-picker";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import type { FleetDriver, FleetEntry } from "@/lib/fleet/fleet";
-import { formatDateShort, formatMoney, todayISO } from "@/lib/trackuber/calc";
-import { useStore } from "@/lib/trackuber/store";
+import { computeRange, formatDateShort, parseISO, todayISO } from "@/lib/trackuber/calc";
+import type { DateRange, DateRangePreset } from "@/lib/trackuber/types";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 export const Route = createFileRoute("/_app/fleet/drivers/$driverId")({
   head: () => ({
@@ -26,16 +29,23 @@ type EntryDraft = Pick<
   "id" | "date" | "gross" | "cash" | "gas_card" | "created_at" | "updated_at"
 >;
 
+const presets: { key: DateRangePreset; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "thisWeek", label: "This week" },
+  { key: "lastWeek", label: "Last week" },
+];
+
 function DriverHistoryPage() {
   const { driverId } = Route.useParams();
   const { user } = useAuth();
-  const { state } = useStore();
   const navigate = useNavigate();
   const [driver, setDriver] = useState<FleetDriver | null>(null);
   const [entries, setEntries] = useState<EntryDraft[]>([]);
   const [loading, setLoading] = useState(true);
   const [newDate, setNewDate] = useState(todayISO());
   const [adding, setAdding] = useState(false);
+  const [range, setRange] = useState<DateRange>(() => computeRange("thisWeek", undefined, undefined, 1));
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -51,6 +61,8 @@ function DriverHistoryPage() {
           .from("fleet_driver_entries")
           .select("id, date, gross, cash, gas_card, created_at, updated_at")
           .eq("driver_id", driverId)
+          .gte("date", range.from)
+          .lte("date", range.to)
           .order("date", { ascending: false }),
       ]);
     setLoading(false);
@@ -72,7 +84,7 @@ function DriverHistoryPage() {
         gas_card: Number(entry.gas_card),
       })) as EntryDraft[],
     );
-  }, [driverId, navigate, user]);
+  }, [driverId, navigate, range.from, range.to, user]);
 
   useEffect(() => {
     load();
@@ -136,6 +148,7 @@ function DriverHistoryPage() {
           )}
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <RangePicker range={range} onChange={setRange} />
           <Input
             aria-label="Entry date"
             type="date"
@@ -157,7 +170,7 @@ function DriverHistoryPage() {
               <CalendarDays className="h-4 w-4 text-primary" /> Settlement entry history
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Each row is one dated input. Change a value, then save that row.
+              Showing {formatDateShort(range.from)} to {formatDateShort(range.to)}. Change a value, then save that row.
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -176,7 +189,7 @@ function DriverHistoryPage() {
                 {!loading && entries.length === 0 && (
                   <tr>
                     <td colSpan={6} className="p-10 text-center text-muted-foreground">
-                      No entries yet. Add a date to begin this driver’s history.
+                      No entries in this date range.
                     </td>
                   </tr>
                 )}
@@ -194,6 +207,72 @@ function DriverHistoryPage() {
         Partner who owns this driver.
       </p>
     </div>
+  );
+}
+
+function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: DateRange) => void }) {
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState<DayPickerRange | undefined>({
+    from: parseISO(range.from),
+    to: parseISO(range.to),
+  });
+
+  useEffect(() => {
+    setSelected({ from: parseISO(range.from), to: parseISO(range.to) });
+  }, [range.from, range.to]);
+
+  const label =
+    range.preset === "custom"
+      ? `${formatDateShort(range.from)} → ${formatDateShort(range.to)}`
+      : (presets.find((preset) => preset.key === range.preset)?.label ?? "Date range");
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="outline" className="gap-2 rounded-xl">
+          <CalendarIcon className="h-4 w-4" />
+          <span>{label}</span>
+          <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-auto p-3">
+        <div className="mb-3 grid grid-cols-2 gap-1">
+          {presets.map((preset) => (
+            <Button
+              key={preset.key}
+              size="sm"
+              variant={range.preset === preset.key ? "default" : "ghost"}
+              className="justify-start rounded-lg"
+              onClick={() => {
+                onChange(computeRange(preset.key, undefined, undefined, 1));
+                setOpen(false);
+              }}
+            >
+              {preset.label}
+            </Button>
+          ))}
+        </div>
+        <div className="border-t border-border pt-3">
+          <div className="mb-2 text-xs font-medium text-muted-foreground">Custom range</div>
+          <Calendar
+            mode="range"
+            weekStartsOn={1}
+            selected={selected}
+            onSelect={(selection) => {
+              setSelected(selection);
+              if (!selection?.from || !selection.to) return;
+              const from = todayISO(selection.from);
+              const to = todayISO(selection.to);
+              onChange({ preset: "custom", from: from <= to ? from : to, to: from <= to ? to : from });
+              setOpen(false);
+            }}
+          />
+          <p className="mt-2 px-1 text-[11px] text-muted-foreground">
+            Select a start date, then an end date to apply a custom range.
+          </p>
+        </div>
+      </PopoverContent>
+    </Popover>
   );
 }
 
