@@ -1,8 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link, Outlet, useMatches } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Calendar as CalendarIcon, ChevronDown, FileText, Send, UserPlus } from "lucide-react";
-import { Link } from "@tanstack/react-router";
 import type { DateRange as DayPickerRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth/AuthProvider";
@@ -33,7 +32,7 @@ export const Route = createFileRoute("/_app/fleet/drivers")({
       { property: "og:description", content: "Driver settlement sheet with gross, cash, VAT, fees and payout." },
     ],
   }),
-  component: DriversPage,
+  component: DriversLayout,
 });
 
 const presets: { key: DateRangePreset; label: string }[] = [
@@ -42,6 +41,13 @@ const presets: { key: DateRangePreset; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "yesterday", label: "Yesterday" },
 ];
+
+function DriversLayout() {
+  const matches = useMatches();
+  const isDriverHistory = matches.some((match) => match.routeId === "/_app/fleet/drivers/$driverId");
+  if (isDriverHistory) return <Outlet />;
+  return <DriversPage />;
+}
 
 function DriversPage() {
   const { user } = useAuth();
