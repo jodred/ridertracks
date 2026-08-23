@@ -43,7 +43,6 @@ function DriverHistoryPage() {
   const [driver, setDriver] = useState<FleetDriver | null>(null);
   const [entries, setEntries] = useState<EntryDraft[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newDate, setNewDate] = useState(todayISO());
   const [adding, setAdding] = useState(false);
   const [range, setRange] = useState<DateRange>(() => computeRange("thisWeek", undefined, undefined, 1));
 
@@ -106,13 +105,14 @@ function DriverHistoryPage() {
   }
 
   async function addEntry() {
-    if (!user || !newDate) return;
+    if (!user) return;
+    const entryDate = range.to > todayISO() ? todayISO() : range.to;
     setAdding(true);
     const { error } = await supabase.from("fleet_driver_entries").upsert(
       {
         fleet_user_id: user.id,
         driver_id: driverId,
-        date: newDate,
+        date: entryDate,
         gross: 0,
         cash: 0,
         gas_card: 0,
@@ -121,7 +121,7 @@ function DriverHistoryPage() {
     );
     setAdding(false);
     if (error) return toast.error(error.message);
-    toast.success(`Entry for ${formatDateShort(newDate)} is ready to edit`);
+    toast.success(`Entry for ${formatDateShort(entryDate)} is ready to edit`);
     await load();
   }
 
@@ -149,16 +149,8 @@ function DriverHistoryPage() {
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <RangePicker range={range} onChange={setRange} />
-          <Input
-            aria-label="Entry date"
-            type="date"
-            max={todayISO()}
-            value={newDate}
-            onChange={(event) => setNewDate(event.target.value)}
-            className="h-10 w-auto rounded-xl"
-          />
           <Button className="rounded-xl" onClick={addEntry} disabled={adding || !driver}>
-            <Plus className="h-4 w-4" /> Add date
+            <Plus className="h-4 w-4" /> Add entry
           </Button>
         </div>
       </div>
