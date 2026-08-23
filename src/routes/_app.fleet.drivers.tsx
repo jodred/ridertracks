@@ -189,7 +189,15 @@ function DriversPage() {
                 {rows.map((r) => (
                   <tr key={r.driver.id} className="border-b border-border/60 last:border-0">
                     <td className="px-4 py-2 font-medium">{r.driver.code}</td>
-                    <td className="px-4 py-2">{r.driver.name}</td>
+                    <td className="px-4 py-2">
+                      <Link
+                        to="/fleet/drivers/$driverId"
+                        params={{ driverId: r.driver.id }}
+                        className="font-medium text-foreground underline-offset-4 hover:text-primary hover:underline"
+                      >
+                        {r.driver.name}
+                      </Link>
+                    </td>
                     <td className="px-4 py-2 text-muted-foreground">{r.driver.email}</td>
                     <td className="px-2 py-2 text-right">
                       <NumberCell value={r.gross} onCommit={(v) => saveCell(r.driver.id, "gross", v)} />

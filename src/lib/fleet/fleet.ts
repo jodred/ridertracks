@@ -10,11 +10,14 @@ export interface FleetDriver {
 }
 
 export interface FleetEntry {
+  id?: string;
   driver_id: string;
   date: string;
   gross: number;
   cash: number;
   gas_card: number;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface DriverRow {
