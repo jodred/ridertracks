@@ -47,7 +47,10 @@ export function GlobalDateRangePicker() {
   return (
     <Popover
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen && tab === "custom") setSelected(undefined);
+      }}
     >
       <PopoverTrigger asChild>
         <Button variant="outline" className="gap-2 rounded-full border-border bg-card px-4 shadow-soft">
@@ -65,7 +68,10 @@ export function GlobalDateRangePicker() {
             Presets
           </button>
           <button
-            onClick={() => setTab("custom")}
+            onClick={() => {
+              setTab("custom");
+              setSelected(undefined);
+            }}
             className={`flex-1 py-2 text-xs font-medium ${tab === "custom" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
           >
             Custom

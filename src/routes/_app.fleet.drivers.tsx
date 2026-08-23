@@ -366,7 +366,13 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (r: Date
       : (presets.find((p) => p.key === range.preset)?.label ?? "Range");
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (nextOpen) setSelected(undefined);
+      }}
+    >
       <PopoverTrigger asChild>
         <Button variant="outline" className="gap-2 rounded-xl">
           <CalendarIcon className="h-4 w-4" />
