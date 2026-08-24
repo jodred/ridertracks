@@ -34,6 +34,7 @@ const presets: { key: DateRangePreset; label: string }[] = [
   { key: "yesterday", label: "Yesterday" },
   { key: "thisWeek", label: "This week" },
   { key: "lastWeek", label: "Last week" },
+  { key: "allTime", label: "All time" },
 ];
 
 function DriverHistoryPage() {
@@ -49,6 +50,13 @@ function DriverHistoryPage() {
   const load = useCallback(async () => {
     if (!user) return;
     setLoading(true);
+    let entryQuery = supabase
+      .from("fleet_driver_entries")
+      .select("id, date, gross, cash, gas_card, created_at, updated_at")
+      .eq("driver_id", driverId);
+    if (range.preset !== "allTime") {
+      entryQuery = entryQuery.gte("date", range.from).lte("date", range.to);
+    }
     const [{ data: driverData, error: driverError }, { data: entryData, error: entryError }] =
       await Promise.all([
         supabase
@@ -56,13 +64,7 @@ function DriverHistoryPage() {
           .select("id, code, name, email, app_fee_override")
           .eq("id", driverId)
           .maybeSingle(),
-        supabase
-          .from("fleet_driver_entries")
-          .select("id, date, gross, cash, gas_card, created_at, updated_at")
-          .eq("driver_id", driverId)
-          .gte("date", range.from)
-          .lte("date", range.to)
-          .order("date", { ascending: false }),
+        entryQuery.order("date", { ascending: false }),
       ]);
     setLoading(false);
     if (driverError || entryError)
@@ -83,7 +85,7 @@ function DriverHistoryPage() {
         gas_card: Number(entry.gas_card),
       })) as EntryDraft[],
     );
-  }, [driverId, navigate, range.from, range.to, user]);
+  }, [driverId, navigate, range.from, range.preset, range.to, user]);
 
   useEffect(() => {
     load();
@@ -162,7 +164,9 @@ function DriverHistoryPage() {
               <CalendarDays className="h-4 w-4 text-primary" /> Settlement entry history
             </div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Showing {formatDateShort(range.from)} to {formatDateShort(range.to)}. Change a value, then save that row.
+              {range.preset === "allTime"
+                ? "Showing all recorded entries."
+                : `Showing ${formatDateShort(range.from)} to ${formatDateShort(range.to)}.`} Change a value, then save that row.
             </p>
           </div>
           <div className="overflow-x-auto">
@@ -215,7 +219,9 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: 
   }, [range.from, range.to]);
 
   const label =
-    range.preset === "custom"
+    range.preset === "allTime"
+      ? "All time"
+      : range.preset === "custom"
       ? `${formatDateShort(range.from)} → ${formatDateShort(range.to)}`
       : (presets.find((preset) => preset.key === range.preset)?.label ?? "Date range");
 

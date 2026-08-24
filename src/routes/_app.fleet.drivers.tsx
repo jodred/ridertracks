@@ -40,6 +40,7 @@ const presets: { key: DateRangePreset; label: string }[] = [
   { key: "lastWeek", label: "Last week" },
   { key: "today", label: "Today" },
   { key: "yesterday", label: "Yesterday" },
+  { key: "allTime", label: "All time" },
 ];
 
 function DriversLayout() {
@@ -66,11 +67,13 @@ function DriversPage() {
       .select("id, code, name, email, app_fee_override")
       .order("code");
     setDrivers((d ?? []) as FleetDriver[]);
-    const { data: e } = await supabase
+    let entryQuery = supabase
       .from("fleet_driver_entries")
       .select("driver_id, date, gross, cash, gas_card")
-      .gte("date", range.from)
-      .lte("date", range.to);
+    if (range.preset !== "allTime") {
+      entryQuery = entryQuery.gte("date", range.from).lte("date", range.to);
+    }
+    const { data: e } = await entryQuery;
     setEntries((e ?? []) as FleetEntry[]);
   }, [user, range.from, range.to]);
 
@@ -360,7 +363,9 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (r: Date
   }, [range.from, range.to]);
 
   const label =
-    range.preset === "custom"
+    range.preset === "allTime"
+      ? "All time"
+      : range.preset === "custom"
       ? range.from === range.to
         ? formatDateShort(range.from)
         : `${formatDateShort(range.from)} → ${formatDateShort(range.to)}`

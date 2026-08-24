@@ -15,6 +15,7 @@ const presets: { key: DateRangePreset; label: string }[] = [
   { key: "lastWeek", label: "Last Week" },
   { key: "thisMonth", label: "This Month" },
   { key: "lastMonth", label: "Last Month" },
+  { key: "allTime", label: "All time" },
 ];
 
 export function GlobalDateRangePicker() {
@@ -32,7 +33,9 @@ export function GlobalDateRangePicker() {
   }, [range.from, range.to]);
 
   const label =
-    range.preset === "custom"
+    range.preset === "allTime"
+      ? "All time"
+      : range.preset === "custom"
       ? range.from === range.to
         ? formatDateShort(range.from)
         : `${formatDateShort(range.from)} → ${formatDateShort(range.to)}`

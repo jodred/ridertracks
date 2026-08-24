@@ -70,6 +70,8 @@ export function computeRange(
       const s = todayISO(d);
       return { preset, from: startOfMonth(s), to: endOfMonth(s) };
     }
+    case "allTime":
+      return { preset, from: "0001-01-01", to: today };
     case "custom":
       return { preset, from: from ?? today, to: to ?? today };
   }
@@ -147,10 +149,15 @@ export function weeklyFeeDatesInRange(
   range: DateRange,
   firstDay: 0 | 1 = 1,
 ): string[] {
-  // find each week overlapping range
+  // Only iterate weeks that contain entries. This keeps an "all time" range fast.
+  const datesInRange = Object.keys(entries)
+    .filter((date) => date >= range.from && date <= range.to)
+    .sort();
+  if (datesInRange.length === 0) return [];
+
   const seen = new Set<string>();
   const results: string[] = [];
-  let cursor = startOfWeek(range.from, firstDay);
+  let cursor = startOfWeek(datesInRange[0], firstDay);
   while (cursor <= range.to) {
     const weekStart = cursor;
     if (!seen.has(weekStart)) {

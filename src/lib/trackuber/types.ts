@@ -62,6 +62,7 @@ export type DateRangePreset =
   | "lastWeek"
   | "thisMonth"
   | "lastMonth"
+  | "allTime"
   | "custom";
 
 export interface DateRange {
