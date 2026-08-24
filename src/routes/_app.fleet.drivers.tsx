@@ -59,6 +59,7 @@ function DriversPage() {
   const [drivers, setDrivers] = useState<FleetDriver[]>([]);
   const [entries, setEntries] = useState<FleetEntry[]>([]);
   const [invoiceOpen, setInvoiceOpen] = useState(false);
+  const [sendingInvoices, setSendingInvoices] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -84,6 +85,11 @@ function DriversPage() {
   const rows = useMemo(
     () => drivers.map((d) => buildDriverRow(d, entries, state.fleet.deductions, state.fleet.weeklyAppFee)),
     [drivers, entries, state.fleet.deductions, state.fleet.weeklyAppFee],
+  );
+
+  const invoiceRows = useMemo(
+    () => rows.filter((row) => entries.some((entry) => entry.driver_id === row.driver.id)),
+    [entries, rows],
   );
 
   // The value typed in a cell is the total for the selected period; it is written
@@ -136,6 +142,28 @@ function DriversPage() {
   }
 
   const opts = { company: state.fleet.fleetName, from: range.from, to: range.to, currency };
+
+  async function sendInvoices() {
+    if (invoiceRows.length === 0) return;
+    setSendingInvoices(true);
+    const { data, error } = await supabase.functions.invoke("send-invoices", {
+      body: {
+        from: range.from,
+        to: range.to,
+        invoices: invoiceRows.map((row) => ({
+          driverId: row.driver.id,
+          html: invoiceHtml(row, opts),
+        })),
+      },
+    });
+    setSendingInvoices(false);
+    if (error) return toast.error("Invoices could not be sent. Check your email configuration and try again.");
+    const sent = typeof data?.sent === "number" ? data.sent : 0;
+    const omitted = typeof data?.omitted === "number" ? data.omitted : 0;
+    if (sent === 0) return toast.error("No invoices were sent. Confirm the sender domain is verified in Resend.");
+    toast.success(`${sent} invoice${sent === 1 ? "" : "s"} sent${omitted ? `; ${omitted} omitted` : ""}`);
+    setInvoiceOpen(false);
+  }
 
   const totals = rows.reduce(
     (acc, r) => ({
@@ -273,36 +301,27 @@ function DriversPage() {
           <DialogHeader>
             <DialogTitle>Send invoices</DialogTitle>
             <DialogDescription>
-              One invoice per driver for {formatDateShort(range.from)} → {formatDateShort(range.to)}.
+              Emailing {invoiceRows.length} driver{invoiceRows.length === 1 ? "" : "s"} with entries from {formatDateShort(range.from)} → {formatDateShort(range.to)}. Drivers without entries are omitted.
             </DialogDescription>
           </DialogHeader>
           <div className="max-h-56 space-y-1 overflow-y-auto text-sm">
-            {rows.map((r) => (
+            {invoiceRows.map((r) => (
               <div key={r.driver.id} className="flex items-center justify-between rounded-lg bg-secondary px-3 py-2">
                 <span>{r.driver.name} · {r.driver.code}</span>
                 <span className="text-muted-foreground">{r.driver.email}</span>
               </div>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            Email delivery needs a verified sender domain for your fleet. Until that is set up, generate each driver's
-            invoice PDF here and attach it to your own email.
-          </p>
+          {invoiceRows.length === 0 && (
+            <p className="text-sm text-muted-foreground">No drivers have entries in this date range.</p>
+          )}
           <DialogFooter>
             <Button
               className="rounded-xl"
-              onClick={() => {
-                rows.forEach((r, i) =>
-                  setTimeout(
-                    () => printHtml(invoiceHtml(r, opts), `invoice_${r.driver.code}_${range.from}_${range.to}.html`),
-                    i * 800,
-                  ),
-                );
-                setInvoiceOpen(false);
-              }}
-              disabled={rows.length === 0}
+              onClick={sendInvoices}
+              disabled={invoiceRows.length === 0 || sendingInvoices}
             >
-              <FileText className="h-4 w-4" /> Generate all invoices
+              <Send className="h-4 w-4" /> {sendingInvoices ? "Sending…" : "Send invoices"}
             </Button>
           </DialogFooter>
         </DialogContent>
