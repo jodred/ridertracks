@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Calendar as CalendarIcon, CalendarDays, ChevronDown, Pencil, Plus, Save } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, CalendarDays, ChevronDown, Pencil, Plus, Save, Trash2 } from "lucide-react";
 import type { DateRange as DayPickerRange } from "react-day-picker";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,6 +13,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_app/fleet/drivers/$driverId")({
   head: () => ({
@@ -46,6 +56,8 @@ function DriverHistoryPage() {
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [range, setRange] = useState<DateRange>(() => computeRange("thisWeek", undefined, undefined, 1));
+  const [entryToDelete, setEntryToDelete] = useState<EntryDraft | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -127,6 +139,21 @@ function DriverHistoryPage() {
     await load();
   }
 
+  async function deleteEntry() {
+    if (!entryToDelete?.id) return;
+    setDeleting(true);
+    const { error } = await supabase
+      .from("fleet_driver_entries")
+      .delete()
+      .eq("id", entryToDelete.id)
+      .eq("driver_id", driverId);
+    setDeleting(false);
+    if (error) return toast.error(error.message);
+    toast.success(`${formatDateShort(entryToDelete.date)} entry deleted`);
+    setEntryToDelete(null);
+    await load();
+  }
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -190,7 +217,12 @@ function DriverHistoryPage() {
                   </tr>
                 )}
                 {entries.map((entry) => (
-                  <EntryHistoryRow key={entry.id} entry={entry} onSave={saveEntry} />
+                  <EntryHistoryRow
+                    key={entry.id}
+                    entry={entry}
+                    onSave={saveEntry}
+                    onDelete={() => setEntryToDelete(entry)}
+                  />
                 ))}
               </tbody>
             </table>
@@ -202,6 +234,35 @@ function DriverHistoryPage() {
         <Pencil className="mr-1 inline h-3.5 w-3.5" /> History is available only to the Fleet
         Partner who owns this driver.
       </p>
+
+      <AlertDialog
+        open={Boolean(entryToDelete)}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setEntryToDelete(null);
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently deletes the settlement record for {entryToDelete && formatDateShort(entryToDelete.date)}.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={deleting}
+              onClick={(event) => {
+                event.preventDefault();
+                deleteEntry();
+              }}
+            >
+              <Trash2 className="h-4 w-4" /> {deleting ? "Deleting…" : "Delete entry"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -294,9 +355,11 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: 
 function EntryHistoryRow({
   entry,
   onSave,
+  onDelete,
 }: {
   entry: EntryDraft;
   onSave: (entry: EntryDraft) => Promise<void>;
+  onDelete: () => void;
 }) {
   const [gross, setGross] = useState(String(entry.gross));
   const [cash, setCash] = useState(String(entry.cash));
@@ -324,21 +387,26 @@ function EntryHistoryRow({
         {entry.updated_at ? new Date(entry.updated_at).toLocaleString() : "—"}
       </td>
       <td className="px-5 py-2 text-right">
-        <Button
-          size="sm"
-          variant="outline"
-          className="rounded-xl"
-          onClick={() =>
-            onSave({
-              ...entry,
-              gross: safeNumber(gross),
-              cash: safeNumber(cash),
-              gas_card: safeNumber(gasCard),
-            })
-          }
-        >
-          <Save className="h-4 w-4" /> Save
-        </Button>
+        <div className="flex justify-end gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-xl"
+            onClick={() =>
+              onSave({
+                ...entry,
+                gross: safeNumber(gross),
+                cash: safeNumber(cash),
+                gas_card: safeNumber(gasCard),
+              })
+            }
+          >
+            <Save className="h-4 w-4" /> Save
+          </Button>
+          <Button size="sm" variant="outline" className="rounded-xl text-destructive" onClick={onDelete}>
+            <Trash2 className="h-4 w-4" /> Delete
+          </Button>
+        </div>
       </td>
     </tr>
   );
