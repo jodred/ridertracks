@@ -25,6 +25,7 @@ export function GlobalDateRangePicker() {
     from: parseISO(range.from),
     to: parseISO(range.to),
   });
+  const [startDate, setStartDate] = useState<Date>();
 
   useEffect(() => {
     setSelected({ from: parseISO(range.from), to: parseISO(range.to) });
@@ -49,7 +50,10 @@ export function GlobalDateRangePicker() {
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
-        if (nextOpen && tab === "custom") setSelected(undefined);
+        if (nextOpen && tab === "custom") {
+          setSelected(undefined);
+          setStartDate(undefined);
+        }
       }}
     >
       <PopoverTrigger asChild>
@@ -71,6 +75,7 @@ export function GlobalDateRangePicker() {
             onClick={() => {
               setTab("custom");
               setSelected(undefined);
+              setStartDate(undefined);
             }}
             className={`flex-1 py-2 text-xs font-medium ${tab === "custom" ? "border-b-2 border-primary text-foreground" : "text-muted-foreground"}`}
           >
@@ -101,13 +106,19 @@ export function GlobalDateRangePicker() {
             <Calendar
               mode="range"
               selected={selected}
-              onSelect={(sel) => {
-                setSelected(sel);
-                // A custom range is only active once the user has selected both dates.
-                if (sel?.from && sel.to) {
-                  applySelection(sel);
-                  setOpen(false);
+              onDayClick={(day) => {
+                if (!startDate) {
+                  setStartDate(day);
+                  setSelected({ from: day, to: undefined });
+                  return;
                 }
+                const from = startDate <= day ? startDate : day;
+                const to = startDate <= day ? day : startDate;
+                const completedRange = { from, to };
+                setSelected(completedRange);
+                applySelection(completedRange);
+                setStartDate(undefined);
+                setOpen(false);
               }}
               numberOfMonths={1}
               className="pointer-events-auto"

@@ -208,6 +208,7 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: 
     from: parseISO(range.from),
     to: parseISO(range.to),
   });
+  const [startDate, setStartDate] = useState<Date>();
 
   useEffect(() => {
     setSelected({ from: parseISO(range.from), to: parseISO(range.to) });
@@ -223,7 +224,10 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: 
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
-        if (nextOpen) setSelected(undefined);
+        if (nextOpen) {
+          setSelected(undefined);
+          setStartDate(undefined);
+        }
       }}
     >
       <PopoverTrigger asChild>
@@ -256,12 +260,19 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: 
             mode="range"
             weekStartsOn={1}
             selected={selected}
-            onSelect={(selection) => {
-              setSelected(selection);
-              if (!selection?.from || !selection.to) return;
-              const from = todayISO(selection.from);
-              const to = todayISO(selection.to);
-              onChange({ preset: "custom", from: from <= to ? from : to, to: from <= to ? to : from });
+            onDayClick={(day) => {
+              if (!startDate) {
+                setStartDate(day);
+                setSelected({ from: day, to: undefined });
+                return;
+              }
+              const fromDate = startDate <= day ? startDate : day;
+              const toDate = startDate <= day ? day : startDate;
+              setSelected({ from: fromDate, to: toDate });
+              const from = todayISO(fromDate);
+              const to = todayISO(toDate);
+              onChange({ preset: "custom", from, to });
+              setStartDate(undefined);
               setOpen(false);
             }}
           />
