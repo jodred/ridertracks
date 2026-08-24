@@ -74,9 +74,9 @@ Deno.serve(async (request) => {
             body: JSON.stringify({
               from: "RideTracks <invoices@ridetracks.com>",
               to: [driver.email],
-              subject: `RideTracks settlement invoice: ${from} to ${to}`,
+              subject: `RideTracks settlement invoice: ${formatDate(from)} to ${formatDate(to)}`,
               html: invoice.html,
-              text: `Hello ${driver.name}, your RideTracks settlement invoice for ${from} to ${to} is ready.`,
+              text: `Hello ${driver.name}, your RideTracks settlement invoice for ${formatDate(from)} to ${formatDate(to)} is ready.`,
             }),
           });
           return { driverId: invoice.driverId, sent: response.ok };
@@ -96,4 +96,9 @@ function json(body: Record<string, unknown>, status = 200) {
     status,
     headers: { ...corsHeaders, "Content-Type": "application/json" },
   });
+}
+
+function formatDate(value: string) {
+  const [year, month, day] = value.split("-");
+  return `${day}.${month}.${year}`;
 }
