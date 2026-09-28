@@ -10,6 +10,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ARRANGEMENT_LABELS,
+  defaultDriverTaxProfile,
+  type DriverArrangement,
+  type DriverTaxProfile,
+  type IncomeCostType,
+} from "@/lib/fleet/polishTax";
 
 export const Route = createFileRoute("/_app/fleet/manage-drivers")({
   head: () => ({
@@ -35,12 +49,13 @@ function ManageDriversPage() {
   const [drivers, setDrivers] = useState<FleetDriver[]>([]);
   const [sources, setSources] = useState<EarningSource[]>([]);
   const [assignments, setAssignments] = useState<Record<string, string[]>>({});
+  const [taxProfiles, setTaxProfiles] = useState<Record<string, DriverTaxProfile>>({});
 
   const load = useCallback(async () => {
     if (!user) return;
     const { error: seedError } = await ensureDefaultEarningSources(user.id);
     if (seedError) return toast.error(seedError.message);
-    const [driverResult, sourceResult, assignmentResult] = await Promise.all([
+    const [driverResult, sourceResult, assignmentResult, taxProfileResult] = await Promise.all([
       supabase
         .from("fleet_drivers")
         .select("id, code, name, email, app_fee_override")
@@ -51,8 +66,14 @@ function ManageDriversPage() {
         .order("sort_order")
         .order("name"),
       supabase.from("fleet_driver_sources").select("driver_id, source_id"),
+      supabase
+        .from("fleet_driver_tax_profiles")
+        .select(
+          "driver_id, fleet_user_id, arrangement, pesel, nip, address_line, postal_code, city, tax_resident, under_26, apply_social_insurance, apply_sickness_insurance, pension_rate, disability_rate, sickness_rate, health_rate, income_cost_type, custom_income_cost, pit_rate, pit2_reduction, ppk_rate, vat_rate, vat_exempt, self_billing",
+        ),
     ]);
-    const error = driverResult.error ?? sourceResult.error ?? assignmentResult.error;
+    const error =
+      driverResult.error ?? sourceResult.error ?? assignmentResult.error ?? taxProfileResult.error;
     if (error) return toast.error(error.message);
     setDrivers((driverResult.data ?? []) as FleetDriver[]);
     setSources((sourceResult.data ?? []) as EarningSource[]);
@@ -64,6 +85,28 @@ function ManageDriversPage() {
       ];
     }
     setAssignments(nextAssignments);
+    const savedProfiles = new Map(
+      (taxProfileResult.data ?? []).map((item) => [item.driver_id, item]),
+    );
+    const nextTaxProfiles: Record<string, DriverTaxProfile> = {};
+    for (const driver of (driverResult.data ?? []) as FleetDriver[]) {
+      const saved = savedProfiles.get(driver.id);
+      nextTaxProfiles[driver.id] = saved
+        ? ({
+            ...saved,
+            pension_rate: Number(saved.pension_rate),
+            disability_rate: Number(saved.disability_rate),
+            sickness_rate: Number(saved.sickness_rate),
+            health_rate: Number(saved.health_rate),
+            custom_income_cost: Number(saved.custom_income_cost),
+            pit_rate: Number(saved.pit_rate),
+            pit2_reduction: Number(saved.pit2_reduction),
+            ppk_rate: Number(saved.ppk_rate),
+            vat_rate: Number(saved.vat_rate),
+          } as DriverTaxProfile)
+        : defaultDriverTaxProfile(driver.id, user.id);
+    }
+    setTaxProfiles(nextTaxProfiles);
   }, [user]);
 
   useEffect(() => {
@@ -72,6 +115,13 @@ function ManageDriversPage() {
 
   function patch(id: string, p: Partial<FleetDriver>) {
     setDrivers((prev) => prev.map((d) => (d.id === id ? { ...d, ...p } : d)));
+  }
+
+  function patchTax(id: string, patchValue: Partial<DriverTaxProfile>) {
+    setTaxProfiles((current) => ({
+      ...current,
+      [id]: { ...current[id], ...patchValue },
+    }));
   }
 
   async function save(d: FleetDriver) {
@@ -114,6 +164,11 @@ function ManageDriversPage() {
         .in("source_id", toRemove);
       if (removeError) return toast.error(removeError.message);
     }
+    const taxProfile = taxProfiles[d.id] ?? defaultDriverTaxProfile(d.id, user.id);
+    const { error: taxError } = await supabase
+      .from("fleet_driver_tax_profiles")
+      .upsert({ ...taxProfile, fleet_user_id: user.id, driver_id: d.id });
+    if (taxError) return toast.error(taxError.message);
     toast.success(`${d.name} updated`);
   }
 
@@ -226,6 +281,10 @@ function ManageDriversPage() {
                   })}
               </div>
             </fieldset>
+            <TaxProfileEditor
+              profile={taxProfiles[d.id] ?? defaultDriverTaxProfile(d.id, user?.id ?? "")}
+              onChange={(profilePatch) => patchTax(d.id, profilePatch)}
+            />
             <div className="flex gap-2 lg:col-span-5">
               <Button className="rounded-xl" onClick={() => save(d)}>
                 <Save className="h-4 w-4" /> Save
@@ -237,6 +296,193 @@ function ManageDriversPage() {
           </CardContent>
         </Card>
       ))}
+    </div>
+  );
+}
+
+function TaxProfileEditor({
+  profile,
+  onChange,
+}: {
+  profile: DriverTaxProfile;
+  onChange: (patch: Partial<DriverTaxProfile>) => void;
+}) {
+  const numeric = (key: keyof DriverTaxProfile, value: string) =>
+    onChange({ [key]: Number(value.replace(",", ".")) } as Partial<DriverTaxProfile>);
+  const checkbox = (label: string, key: keyof DriverTaxProfile) => (
+    <label className="flex items-center gap-2 rounded-xl border border-border px-3 py-2 text-sm">
+      <input
+        type="checkbox"
+        checked={Boolean(profile[key])}
+        onChange={(event) => onChange({ [key]: event.target.checked } as Partial<DriverTaxProfile>)}
+        className="h-4 w-4 accent-primary"
+      />
+      {label}
+    </label>
+  );
+
+  return (
+    <div className="space-y-4 rounded-2xl border border-border bg-secondary/20 p-4 sm:col-span-2 lg:col-span-5">
+      <div>
+        <div className="text-sm font-semibold">Agreement and tax document</div>
+        <div className="text-xs text-muted-foreground">
+          The selected agreement controls which document can be downloaded for this driver.
+        </div>
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-2">
+          <Label>Agreement</Label>
+          <Select
+            value={profile.arrangement}
+            onValueChange={(value) => {
+              const arrangement = value as DriverArrangement;
+              const defaults = defaultDriverTaxProfile(
+                profile.driver_id,
+                profile.fleet_user_id,
+                arrangement,
+              );
+              onChange({
+                arrangement,
+                income_cost_type: defaults.income_cost_type,
+                apply_social_insurance: defaults.apply_social_insurance,
+                apply_sickness_insurance: defaults.apply_sickness_insurance,
+              });
+            }}
+          >
+            <SelectTrigger className="rounded-xl">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(Object.keys(ARRANGEMENT_LABELS) as DriverArrangement[]).map((value) => (
+                <SelectItem value={value} key={value}>
+                  {ARRANGEMENT_LABELS[value]}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label>{profile.arrangement === "b2b" ? "NIP" : "PESEL"}</Label>
+          <Input
+            className="rounded-xl"
+            inputMode="numeric"
+            value={profile.arrangement === "b2b" ? profile.nip : profile.pesel}
+            onChange={(event) =>
+              onChange(
+                profile.arrangement === "b2b"
+                  ? { nip: event.target.value.replace(/\D/g, "") }
+                  : { pesel: event.target.value.replace(/\D/g, "") },
+              )
+            }
+          />
+        </div>
+        <div className="space-y-2 lg:col-span-2">
+          <Label>Street and number</Label>
+          <Input
+            className="rounded-xl"
+            value={profile.address_line}
+            onChange={(e) => onChange({ address_line: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Postal code</Label>
+          <Input
+            className="rounded-xl"
+            placeholder="00-000"
+            value={profile.postal_code}
+            onChange={(e) => onChange({ postal_code: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>City</Label>
+          <Input
+            className="rounded-xl"
+            value={profile.city}
+            onChange={(e) => onChange({ city: e.target.value })}
+          />
+        </div>
+        {profile.arrangement === "b2b" ? (
+          <>
+            <div className="space-y-2">
+              <Label>VAT rate (%)</Label>
+              <Input
+                className="rounded-xl"
+                inputMode="decimal"
+                value={profile.vat_rate}
+                onChange={(e) => numeric("vat_rate", e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap items-end gap-2">
+              {checkbox("VAT exempt", "vat_exempt")}
+              {checkbox("Self-billing", "self_billing")}
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="space-y-2">
+              <Label>Income costs</Label>
+              <Select
+                value={profile.income_cost_type}
+                onValueChange={(value) => onChange({ income_cost_type: value as IncomeCostType })}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard250">Standard 250 zł</SelectItem>
+                  <SelectItem value="commuter300">Commuter 300 zł</SelectItem>
+                  <SelectItem value="percent20">20%</SelectItem>
+                  <SelectItem value="custom">Custom</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {profile.income_cost_type === "custom" && (
+              <div className="space-y-2">
+                <Label>Custom income costs (zł)</Label>
+                <Input
+                  className="rounded-xl"
+                  inputMode="decimal"
+                  value={profile.custom_income_cost}
+                  onChange={(e) => numeric("custom_income_cost", e.target.value)}
+                />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>PIT rate (%)</Label>
+              <Input
+                className="rounded-xl"
+                inputMode="decimal"
+                value={profile.pit_rate}
+                onChange={(e) => numeric("pit_rate", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>PIT-2 monthly reduction</Label>
+              <Input
+                className="rounded-xl"
+                inputMode="decimal"
+                value={profile.pit2_reduction}
+                onChange={(e) => numeric("pit2_reduction", e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>PPK employee rate (%)</Label>
+              <Input
+                className="rounded-xl"
+                inputMode="decimal"
+                value={profile.ppk_rate}
+                onChange={(e) => numeric("ppk_rate", e.target.value)}
+              />
+            </div>
+            <div className="flex flex-wrap gap-2 sm:col-span-2 lg:col-span-4">
+              {checkbox("Polish tax resident", "tax_resident")}
+              {checkbox("Under 26 relief", "under_26")}
+              {checkbox("Social insurance", "apply_social_insurance")}
+              {checkbox("Sickness insurance", "apply_sickness_insurance")}
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }

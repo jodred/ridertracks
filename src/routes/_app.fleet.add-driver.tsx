@@ -11,6 +11,18 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  ARRANGEMENT_LABELS,
+  defaultDriverTaxProfile,
+  type DriverArrangement,
+} from "@/lib/fleet/polishTax";
 
 export const Route = createFileRoute("/_app/fleet/add-driver")({
   head: () => ({
@@ -40,6 +52,7 @@ function AddDriverPage() {
   const [busy, setBusy] = useState(false);
   const [sources, setSources] = useState<EarningSource[]>([]);
   const [sourceIds, setSourceIds] = useState<string[]>([]);
+  const [arrangement, setArrangement] = useState<DriverArrangement>("mandate");
 
   useEffect(() => {
     (async () => {
@@ -94,6 +107,15 @@ function AddDriverPage() {
         setBusy(false);
         return toast.error(
           `Driver was added, but app assignment failed: ${assignmentError.message}`,
+        );
+      }
+      const { error: taxProfileError } = await supabase
+        .from("fleet_driver_tax_profiles")
+        .insert(defaultDriverTaxProfile(driver.id, user.id, arrangement));
+      if (taxProfileError) {
+        setBusy(false);
+        return toast.error(
+          `Driver was added, but the document type could not be saved: ${taxProfileError.message}`,
         );
       }
     }
@@ -155,6 +177,28 @@ function AddDriverPage() {
               <p className="text-xs text-muted-foreground">
                 Auto-generated from your company name ({state.fleet.fleetName}) and assigned in
                 sequence.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label>Agreement and downloadable document</Label>
+              <Select
+                value={arrangement}
+                onValueChange={(value) => setArrangement(value as DriverArrangement)}
+              >
+                <SelectTrigger className="rounded-xl">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(Object.keys(ARRANGEMENT_LABELS) as DriverArrangement[]).map((value) => (
+                    <SelectItem key={value} value={value}>
+                      {ARRANGEMENT_LABELS[value]}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                This selection controls the payroll, mandate statement, or B2B settlement available
+                in Reports.
               </p>
             </div>
             <fieldset className="space-y-2">

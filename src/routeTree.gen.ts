@@ -26,6 +26,7 @@ import { Route as AppFleetIndexRouteImport } from './routes/_app.fleet.index'
 import { Route as AppFleetAddDriverRouteImport } from './routes/_app.fleet.add-driver'
 import { Route as AppFleetDriversRouteImport } from './routes/_app.fleet.drivers'
 import { Route as AppFleetManageDriversRouteImport } from './routes/_app.fleet.manage-drivers'
+import { Route as AppFleetReportsRouteImport } from './routes/_app.fleet.reports'
 import { Route as AppFleetDriversDriverIdRouteImport } from './routes/_app.fleet.drivers.$driverId'
 
 const IndexRoute = IndexRouteImport.update({
@@ -112,6 +113,11 @@ const AppFleetManageDriversRoute = AppFleetManageDriversRouteImport.update({
   path: '/fleet/manage-drivers',
   getParentRoute: () => AppRoute,
 } as any)
+const AppFleetReportsRoute = AppFleetReportsRouteImport.update({
+  id: '/fleet/reports',
+  path: '/fleet/reports',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppFleetDriversDriverIdRoute = AppFleetDriversDriverIdRouteImport.update({
   id: '/$driverId',
   path: '/$driverId',
@@ -134,6 +140,7 @@ export interface FileRoutesByFullPath {
   '/fleet/add-driver': typeof AppFleetAddDriverRoute
   '/fleet/drivers': typeof AppFleetDriversRouteWithChildren
   '/fleet/manage-drivers': typeof AppFleetManageDriversRoute
+  '/fleet/reports': typeof AppFleetReportsRoute
   '/fleet/': typeof AppFleetIndexRoute
   '/fleet/drivers/$driverId': typeof AppFleetDriversDriverIdRoute
 }
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/fleet/add-driver': typeof AppFleetAddDriverRoute
   '/fleet/drivers': typeof AppFleetDriversRouteWithChildren
   '/fleet/manage-drivers': typeof AppFleetManageDriversRoute
+  '/fleet/reports': typeof AppFleetReportsRoute
   '/fleet': typeof AppFleetIndexRoute
   '/fleet/drivers/$driverId': typeof AppFleetDriversDriverIdRoute
 }
@@ -174,6 +182,7 @@ export interface FileRoutesById {
   '/_app/fleet/add-driver': typeof AppFleetAddDriverRoute
   '/_app/fleet/drivers': typeof AppFleetDriversRouteWithChildren
   '/_app/fleet/manage-drivers': typeof AppFleetManageDriversRoute
+  '/_app/fleet/reports': typeof AppFleetReportsRoute
   '/_app/fleet/': typeof AppFleetIndexRoute
   '/_app/fleet/drivers/$driverId': typeof AppFleetDriversDriverIdRoute
 }
@@ -195,6 +204,7 @@ export interface FileRouteTypes {
     | '/fleet/add-driver'
     | '/fleet/drivers'
     | '/fleet/manage-drivers'
+    | '/fleet/reports'
     | '/fleet/'
     | '/fleet/drivers/$driverId'
   fileRoutesByTo: FileRoutesByTo
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/fleet/add-driver'
     | '/fleet/drivers'
     | '/fleet/manage-drivers'
+    | '/fleet/reports'
     | '/fleet'
     | '/fleet/drivers/$driverId'
   id:
@@ -234,6 +245,7 @@ export interface FileRouteTypes {
     | '/_app/fleet/add-driver'
     | '/_app/fleet/drivers'
     | '/_app/fleet/manage-drivers'
+    | '/_app/fleet/reports'
     | '/_app/fleet/'
     | '/_app/fleet/drivers/$driverId'
   fileRoutesById: FileRoutesById
@@ -367,6 +379,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppFleetManageDriversRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/fleet/reports': {
+      id: '/_app/fleet/reports'
+      path: '/fleet/reports'
+      fullPath: '/fleet/reports'
+      preLoaderRoute: typeof AppFleetReportsRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/fleet/drivers/$driverId': {
       id: '/_app/fleet/drivers/$driverId'
       path: '/$driverId'
@@ -412,6 +431,7 @@ interface AppRouteChildren {
   AppFleetAddDriverRoute: typeof AppFleetAddDriverRoute
   AppFleetDriversRoute: typeof AppFleetDriversRouteWithChildren
   AppFleetManageDriversRoute: typeof AppFleetManageDriversRoute
+  AppFleetReportsRoute: typeof AppFleetReportsRoute
   AppFleetIndexRoute: typeof AppFleetIndexRoute
 }
 
@@ -426,6 +446,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppFleetAddDriverRoute: AppFleetAddDriverRoute,
   AppFleetDriversRoute: AppFleetDriversRouteWithChildren,
   AppFleetManageDriversRoute: AppFleetManageDriversRoute,
+  AppFleetReportsRoute: AppFleetReportsRoute,
   AppFleetIndexRoute: AppFleetIndexRoute,
 }
 

@@ -19,7 +19,13 @@ import { useStore } from "../../lib/trackuber/store";
 import { useAuth } from "../../lib/auth/AuthProvider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
-interface NavItem { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean; adminOnly?: boolean }
+interface NavItem {
+  to: string;
+  label: string;
+  icon: typeof LayoutDashboard;
+  exact?: boolean;
+  adminOnly?: boolean;
+}
 const navItems: NavItem[] = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/entry", label: "Daily Entry", icon: PlusCircle },
@@ -33,6 +39,7 @@ const navItems: NavItem[] = [
 const fleetNavItems: NavItem[] = [
   { to: "/fleet", label: "Home", icon: Home, exact: true },
   { to: "/fleet/drivers", label: "Drivers", icon: Users },
+  { to: "/fleet/reports", label: "Reports", icon: FileBarChart },
   { to: "/settings", label: "Settings", icon: Settings },
   { to: "/profile", label: "Profile", icon: User },
 ];
@@ -40,6 +47,7 @@ const fleetNavItems: NavItem[] = [
 const fleetMobileNavItems: NavItem[] = [
   { to: "/fleet", label: "Home", icon: Home, exact: true },
   { to: "/fleet/drivers", label: "Drivers", icon: Users },
+  { to: "/fleet/reports", label: "Reports", icon: FileBarChart },
   { to: "/profile", label: "Profile", icon: User },
 ];
 
@@ -64,7 +72,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const homeTo = isFleet ? "/fleet" : "/dashboard";
   const visibleNav = (isFleet ? fleetNavItems : navItems).filter((i) => !i.adminOnly || isAdmin);
-  const visibleMobile = (isFleet ? fleetMobileNavItems : mobileNavItems).filter((i) => !i.adminOnly || isAdmin);
+  const visibleMobile = (isFleet ? fleetMobileNavItems : mobileNavItems).filter(
+    (i) => !i.adminOnly || isAdmin,
+  );
 
   async function handleSignOut() {
     try {
@@ -94,7 +104,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       ))}
     </div>
   );
-
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -132,7 +141,9 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="mt-auto space-y-2">
           <div className="rounded-xl bg-secondary p-3 text-xs text-muted-foreground">
-            <div className="font-medium text-foreground">{state.profile.driverName || "Driver"}</div>
+            <div className="font-medium text-foreground">
+              {state.profile.driverName || "Driver"}
+            </div>
             <div className="truncate">{user?.email || state.profile.email || "—"}</div>
           </div>
           <button
@@ -167,7 +178,6 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span className="hidden sm:inline">Sign out</span>
             </button>
           </div>
-
         </header>
 
         <main className="mx-auto w-full max-w-[1400px] px-4 py-6 pb-28 sm:px-6 lg:px-8 lg:pb-10">
@@ -222,7 +232,9 @@ export function AppShell({ children }: { children: ReactNode }) {
                   onClick={() => setMobileMenuOpen(false)}
                   className={[
                     "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-medium transition-colors",
-                    active ? "bg-accent text-accent-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground",
+                    active
+                      ? "bg-accent text-accent-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground",
                   ].join(" ")}
                 >
                   <Icon className="h-5 w-5" />

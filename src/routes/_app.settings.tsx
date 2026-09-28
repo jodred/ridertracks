@@ -38,6 +38,7 @@ import {
   type AdjustmentType,
   type EarningSource,
 } from "../lib/fleet/settlements";
+import type { FleetTaxProfile } from "../lib/fleet/polishTax";
 
 export const Route = createFileRoute("/_app/settings")({
   head: () => ({
@@ -165,6 +166,10 @@ function SettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {accountType === "fleet" && user && (
+        <FleetTaxProfileSettings fleetUserId={user.id} defaultLegalName={fleet.fleetName} />
+      )}
 
       {accountType === "fleet" && user && <EarningAppsSettings fleetUserId={user.id} />}
 
@@ -335,6 +340,102 @@ function SettingsPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function FleetTaxProfileSettings({
+  fleetUserId,
+  defaultLegalName,
+}: {
+  fleetUserId: string;
+  defaultLegalName: string;
+}) {
+  const [profile, setProfile] = useState<FleetTaxProfile>({
+    fleet_user_id: fleetUserId,
+    legal_name: defaultLegalName,
+    nip: "",
+    regon: "",
+    address_line: "",
+    postal_code: "",
+    city: "",
+    tax_office: "",
+    bank_account: "",
+    document_prefix: "RT",
+  });
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("fleet_tax_profiles")
+        .select(
+          "fleet_user_id, legal_name, nip, regon, address_line, postal_code, city, tax_office, bank_account, document_prefix",
+        )
+        .maybeSingle();
+      if (error) return toast.error(error.message);
+      if (data) setProfile(data as FleetTaxProfile);
+    })();
+  }, [fleetUserId]);
+
+  const patchProfile = (key: keyof FleetTaxProfile, value: string) =>
+    setProfile((current) => ({ ...current, [key]: value }));
+
+  async function save() {
+    setBusy(true);
+    const payload = {
+      ...profile,
+      fleet_user_id: fleetUserId,
+      legal_name: profile.legal_name.trim(),
+      nip: profile.nip.replace(/\D/g, ""),
+      regon: profile.regon.replace(/\D/g, ""),
+      postal_code: profile.postal_code.trim(),
+      document_prefix: profile.document_prefix.trim().toUpperCase() || "RT",
+    };
+    const { error } = await supabase.from("fleet_tax_profiles").upsert(payload);
+    setBusy(false);
+    if (error) return toast.error(error.message);
+    setProfile(payload);
+    toast.success("Company tax details saved");
+  }
+
+  return (
+    <Card className="rounded-2xl border-border shadow-card">
+      <CardContent className="space-y-4 p-5">
+        <div>
+          <div className="text-sm font-semibold">Company and tax document details</div>
+          <div className="text-xs text-muted-foreground">
+            Used on payroll, mandate and B2B documents generated in Fleet Reports.
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {[
+            ["Legal company name", "legal_name", "Your registered business name"],
+            ["NIP", "nip", "10 digits"],
+            ["REGON", "regon", "9 or 14 digits"],
+            ["Street and number", "address_line", "Business address"],
+            ["Postal code", "postal_code", "00-000"],
+            ["City", "city", "City"],
+            ["Tax office", "tax_office", "Urząd Skarbowy"],
+            ["Bank account", "bank_account", "PL…"],
+            ["Document prefix", "document_prefix", "RT"],
+          ].map(([label, key, placeholder]) => (
+            <div className="space-y-2" key={key}>
+              <Label htmlFor={`tax-${key}`}>{label}</Label>
+              <Input
+                id={`tax-${key}`}
+                value={profile[key as keyof FleetTaxProfile]}
+                placeholder={placeholder}
+                onChange={(event) => patchProfile(key as keyof FleetTaxProfile, event.target.value)}
+                className="rounded-xl"
+              />
+            </div>
+          ))}
+        </div>
+        <Button onClick={save} disabled={busy} className="rounded-xl">
+          {busy ? "Saving…" : "Save company details"}
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

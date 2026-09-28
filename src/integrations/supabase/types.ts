@@ -124,6 +124,101 @@ export type Database = {
           },
         ];
       };
+      fleet_driver_tax_profiles: {
+        Row: {
+          address_line: string;
+          apply_sickness_insurance: boolean;
+          apply_social_insurance: boolean;
+          arrangement: string;
+          city: string;
+          created_at: string;
+          custom_income_cost: number;
+          disability_rate: number;
+          driver_id: string;
+          fleet_user_id: string;
+          health_rate: number;
+          income_cost_type: string;
+          nip: string;
+          pension_rate: number;
+          pesel: string;
+          pit_rate: number;
+          pit2_reduction: number;
+          postal_code: string;
+          ppk_rate: number;
+          self_billing: boolean;
+          sickness_rate: number;
+          tax_resident: boolean;
+          under_26: boolean;
+          updated_at: string;
+          vat_exempt: boolean;
+          vat_rate: number;
+        };
+        Insert: {
+          address_line?: string;
+          apply_sickness_insurance?: boolean;
+          apply_social_insurance?: boolean;
+          arrangement?: string;
+          city?: string;
+          created_at?: string;
+          custom_income_cost?: number;
+          disability_rate?: number;
+          driver_id: string;
+          fleet_user_id: string;
+          health_rate?: number;
+          income_cost_type?: string;
+          nip?: string;
+          pension_rate?: number;
+          pesel?: string;
+          pit_rate?: number;
+          pit2_reduction?: number;
+          postal_code?: string;
+          ppk_rate?: number;
+          self_billing?: boolean;
+          sickness_rate?: number;
+          tax_resident?: boolean;
+          under_26?: boolean;
+          updated_at?: string;
+          vat_exempt?: boolean;
+          vat_rate?: number;
+        };
+        Update: {
+          address_line?: string;
+          apply_sickness_insurance?: boolean;
+          apply_social_insurance?: boolean;
+          arrangement?: string;
+          city?: string;
+          created_at?: string;
+          custom_income_cost?: number;
+          disability_rate?: number;
+          driver_id?: string;
+          fleet_user_id?: string;
+          health_rate?: number;
+          income_cost_type?: string;
+          nip?: string;
+          pension_rate?: number;
+          pesel?: string;
+          pit_rate?: number;
+          pit2_reduction?: number;
+          postal_code?: string;
+          ppk_rate?: number;
+          self_billing?: boolean;
+          sickness_rate?: number;
+          tax_resident?: boolean;
+          under_26?: boolean;
+          updated_at?: string;
+          vat_exempt?: boolean;
+          vat_rate?: number;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fleet_driver_tax_profiles_driver_id_fleet_user_id_fkey";
+            columns: ["driver_id", "fleet_user_id"];
+            isOneToOne: true;
+            referencedRelation: "fleet_drivers";
+            referencedColumns: ["id", "fleet_user_id"];
+          },
+        ];
+      };
       fleet_drivers: {
         Row: {
           app_fee_override: number | null;
@@ -239,7 +334,22 @@ export type Database = {
           unit_amount?: number;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "fleet_entry_adjustments_adjustment_type_id_fleet_user_id_fkey";
+            columns: ["adjustment_type_id", "fleet_user_id"];
+            isOneToOne: false;
+            referencedRelation: "fleet_adjustment_types";
+            referencedColumns: ["id", "fleet_user_id"];
+          },
+          {
+            foreignKeyName: "fleet_entry_adjustments_entry_id_fleet_user_id_fkey";
+            columns: ["entry_id", "fleet_user_id"];
+            isOneToOne: false;
+            referencedRelation: "fleet_driver_entries";
+            referencedColumns: ["id", "fleet_user_id"];
+          },
+        ];
       };
       fleet_entry_earnings: {
         Row: {
@@ -267,6 +377,110 @@ export type Database = {
           fleet_user_id?: string;
           id?: string;
           source_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fleet_entry_earnings_entry_id_fleet_user_id_fkey";
+            columns: ["entry_id", "fleet_user_id"];
+            isOneToOne: false;
+            referencedRelation: "fleet_driver_entries";
+            referencedColumns: ["id", "fleet_user_id"];
+          },
+          {
+            foreignKeyName: "fleet_entry_earnings_source_id_fleet_user_id_fkey";
+            columns: ["source_id", "fleet_user_id"];
+            isOneToOne: false;
+            referencedRelation: "fleet_earning_sources";
+            referencedColumns: ["id", "fleet_user_id"];
+          },
+        ];
+      };
+      fleet_generated_documents: {
+        Row: {
+          document_number: string;
+          document_type: string;
+          driver_id: string;
+          fleet_user_id: string;
+          generated_at: string;
+          id: string;
+          period_from: string;
+          period_to: string;
+          snapshot: Json;
+        };
+        Insert: {
+          document_number: string;
+          document_type: string;
+          driver_id: string;
+          fleet_user_id: string;
+          generated_at?: string;
+          id?: string;
+          period_from: string;
+          period_to: string;
+          snapshot: Json;
+        };
+        Update: {
+          document_number?: string;
+          document_type?: string;
+          driver_id?: string;
+          fleet_user_id?: string;
+          generated_at?: string;
+          id?: string;
+          period_from?: string;
+          period_to?: string;
+          snapshot?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fleet_generated_documents_driver_id_fleet_user_id_fkey";
+            columns: ["driver_id", "fleet_user_id"];
+            isOneToOne: false;
+            referencedRelation: "fleet_drivers";
+            referencedColumns: ["id", "fleet_user_id"];
+          },
+        ];
+      };
+      fleet_tax_profiles: {
+        Row: {
+          address_line: string;
+          bank_account: string;
+          city: string;
+          created_at: string;
+          document_prefix: string;
+          fleet_user_id: string;
+          legal_name: string;
+          nip: string;
+          postal_code: string;
+          regon: string;
+          tax_office: string;
+          updated_at: string;
+        };
+        Insert: {
+          address_line?: string;
+          bank_account?: string;
+          city?: string;
+          created_at?: string;
+          document_prefix?: string;
+          fleet_user_id: string;
+          legal_name?: string;
+          nip?: string;
+          postal_code?: string;
+          regon?: string;
+          tax_office?: string;
+          updated_at?: string;
+        };
+        Update: {
+          address_line?: string;
+          bank_account?: string;
+          city?: string;
+          created_at?: string;
+          document_prefix?: string;
+          fleet_user_id?: string;
+          legal_name?: string;
+          nip?: string;
+          postal_code?: string;
+          regon?: string;
+          tax_office?: string;
           updated_at?: string;
         };
         Relationships: [];
