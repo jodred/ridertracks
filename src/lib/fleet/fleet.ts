@@ -1,5 +1,10 @@
 import { applyDeductions, formatMoney, startOfWeek } from "@/lib/trackuber/calc";
 import type { Deduction } from "@/lib/trackuber/types";
+import {
+  adjustmentLineTotal,
+  netAdjustmentTotal,
+  type EntryAdjustment,
+} from "@/lib/fleet/settlements";
 
 export interface FleetDriver {
   id: string;
@@ -28,6 +33,11 @@ export interface DriverRow {
   vat: number;
   appFee: number;
   weeks: number;
+  additions: number;
+  extraDeductions: number;
+  netAdjustments: number;
+  sourceEarnings: { sourceId: string; name: string; amount: number }[];
+  adjustments: EntryAdjustment[];
   payout: number;
 }
 
@@ -59,6 +69,7 @@ export function buildDriverRow(
   entries: FleetEntry[],
   deductions: Deduction[],
   weeklyAppFee: number,
+  adjustments: EntryAdjustment[] = [],
 ): DriverRow {
   const mine = entries.filter((e) => e.driver_id === driver.id);
   const gross = mine.reduce((s, e) => s + Number(e.gross || 0), 0);
@@ -68,6 +79,13 @@ export function buildDriverRow(
   const weeks = weeksWithEntries(mine);
   const fee = driver.app_fee_override ?? weeklyAppFee;
   const appFee = weeks * Number(fee || 0);
+  const additions = adjustments
+    .filter((adjustment) => adjustment.direction === "addition")
+    .reduce((sum, adjustment) => sum + adjustmentLineTotal(adjustment), 0);
+  const extraDeductions = adjustments
+    .filter((adjustment) => adjustment.direction === "deduction")
+    .reduce((sum, adjustment) => sum + adjustmentLineTotal(adjustment), 0);
+  const netAdjustments = netAdjustmentTotal(adjustments);
   return {
     driver,
     gross,
@@ -76,7 +94,12 @@ export function buildDriverRow(
     vat,
     appFee,
     weeks,
-    payout: gross - appFee - cash - vat - gasCard,
+    additions,
+    extraDeductions,
+    netAdjustments,
+    sourceEarnings: [],
+    adjustments,
+    payout: gross - appFee - cash - vat - gasCard + netAdjustments,
   };
 }
 
@@ -118,11 +141,29 @@ export function invoiceHtml(
       </td></tr>
       <tr><td style="padding:4px 32px 18px">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="border-collapse:collapse">
-          ${line("Gross earnings", amount(row.gross))}
+          ${
+            row.sourceEarnings.length > 0
+              ? `${row.sourceEarnings
+                  .filter((source) => source.amount > 0)
+                  .map((source) => line(escapeHtml(source.name), amount(source.amount)))
+                  .join("")}${line("Gross earnings total", amount(row.gross), true)}`
+              : line("Unallocated gross earnings", amount(row.gross))
+          }
           ${line("Cash collected", amount(row.cash, "− "))}
           ${line("VAT / fleet commission", amount(row.vat, "− "))}
           ${line(`Application fee (${row.weeks} week${row.weeks === 1 ? "" : "s"})`, amount(row.appFee, "− "))}
           ${line("Gas card", amount(row.gasCard, "− "))}
+          ${row.adjustments
+            .map((adjustment) =>
+              line(
+                escapeHtml(adjustment.label),
+                amount(
+                  adjustmentLineTotal(adjustment),
+                  adjustment.direction === "addition" ? "+ " : "− ",
+                ),
+              ),
+            )
+            .join("")}
           ${line("Payout", amount(row.payout), true)}
         </table>
       </td></tr>
@@ -135,8 +176,9 @@ export function invoiceHtml(
 }
 
 export function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
+  return s.replace(
+    /[&<>"']/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] as string,
   );
 }
 

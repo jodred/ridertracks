@@ -1,11 +1,26 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, Calendar as CalendarIcon, CalendarDays, ChevronDown, Pencil, Plus, Save, Trash2 } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar as CalendarIcon,
+  CalendarDays,
+  ChevronDown,
+  Pencil,
+  Plus,
+  Save,
+  Trash2,
+} from "lucide-react";
 import type { DateRange as DayPickerRange } from "react-day-picker";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/lib/auth/AuthProvider";
 import type { FleetDriver, FleetEntry } from "@/lib/fleet/fleet";
+import type {
+  AdjustmentType,
+  EarningSource,
+  EntryAdjustment,
+  EntryEarning,
+} from "@/lib/fleet/settlements";
 import { computeRange, formatDateShort, parseISO, todayISO } from "@/lib/trackuber/calc";
 import type { DateRange, DateRangePreset } from "@/lib/trackuber/types";
 import { Button } from "@/components/ui/button";
@@ -53,9 +68,15 @@ function DriverHistoryPage() {
   const navigate = useNavigate();
   const [driver, setDriver] = useState<FleetDriver | null>(null);
   const [entries, setEntries] = useState<EntryDraft[]>([]);
+  const [entryEarnings, setEntryEarnings] = useState<EntryEarning[]>([]);
+  const [entryAdjustments, setEntryAdjustments] = useState<EntryAdjustment[]>([]);
+  const [sources, setSources] = useState<EarningSource[]>([]);
+  const [adjustmentTypes, setAdjustmentTypes] = useState<AdjustmentType[]>([]);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
-  const [range, setRange] = useState<DateRange>(() => computeRange("thisWeek", undefined, undefined, 1));
+  const [range, setRange] = useState<DateRange>(() =>
+    computeRange("thisWeek", undefined, undefined, 1),
+  );
   const [entryToDelete, setEntryToDelete] = useState<EntryDraft | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -69,26 +90,61 @@ function DriverHistoryPage() {
     if (range.preset !== "allTime") {
       entryQuery = entryQuery.gte("date", range.from).lte("date", range.to);
     }
-    const [{ data: driverData, error: driverError }, { data: entryData, error: entryError }] =
-      await Promise.all([
-        supabase
-          .from("fleet_drivers")
-          .select("id, code, name, email, app_fee_override")
-          .eq("id", driverId)
-          .maybeSingle(),
-        entryQuery.order("date", { ascending: false }),
-      ]);
-    setLoading(false);
-    if (driverError || entryError)
+    const [
+      { data: driverData, error: driverError },
+      { data: entryData, error: entryError },
+      { data: sourceData, error: sourceError },
+      { data: adjustmentTypeData, error: adjustmentTypeError },
+    ] = await Promise.all([
+      supabase
+        .from("fleet_drivers")
+        .select("id, code, name, email, app_fee_override")
+        .eq("id", driverId)
+        .maybeSingle(),
+      entryQuery.order("date", { ascending: false }),
+      supabase.from("fleet_earning_sources").select("*").order("sort_order"),
+      supabase.from("fleet_adjustment_types").select("*").order("name"),
+    ]);
+    if (driverError || entryError || sourceError || adjustmentTypeError) {
+      setLoading(false);
       return toast.error(
-        driverError?.message ?? entryError?.message ?? "Could not load driver history",
+        driverError?.message ??
+          entryError?.message ??
+          sourceError?.message ??
+          adjustmentTypeError?.message ??
+          "Could not load driver history",
       );
+    }
     if (!driverData) {
       toast.error("Driver not found");
       navigate({ to: "/fleet/drivers" });
       return;
     }
+    const entryIds = (entryData ?? []).map((entry) => entry.id);
+    const [
+      { data: earningData, error: earningError },
+      { data: adjustmentData, error: adjustmentError },
+    ] =
+      entryIds.length > 0
+        ? await Promise.all([
+            supabase.from("fleet_entry_earnings").select("*").in("entry_id", entryIds),
+            supabase.from("fleet_entry_adjustments").select("*").in("entry_id", entryIds),
+          ])
+        : [
+            { data: [], error: null },
+            { data: [], error: null },
+          ];
+    setLoading(false);
+    if (earningError || adjustmentError) {
+      return toast.error(
+        earningError?.message ?? adjustmentError?.message ?? "Could not load entry details",
+      );
+    }
     setDriver(driverData as FleetDriver);
+    setSources((sourceData ?? []) as EarningSource[]);
+    setAdjustmentTypes((adjustmentTypeData ?? []) as AdjustmentType[]);
+    setEntryEarnings((earningData ?? []) as EntryEarning[]);
+    setEntryAdjustments((adjustmentData ?? []) as EntryAdjustment[]);
     setEntries(
       (entryData ?? []).map((entry) => ({
         ...entry,
@@ -193,15 +249,18 @@ function DriverHistoryPage() {
             <p className="mt-1 text-sm text-muted-foreground">
               {range.preset === "allTime"
                 ? "Showing all recorded entries."
-                : `Showing ${formatDateShort(range.from)} to ${formatDateShort(range.to)}.`} Change a value, then save that row.
+                : `Showing ${formatDateShort(range.from)} to ${formatDateShort(range.to)}.`}{" "}
+              Change a value, then save that row.
             </p>
           </div>
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[760px] text-sm">
+            <table className="w-full min-w-[1080px] text-sm">
               <thead>
                 <tr className="border-b border-border bg-secondary/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-5 py-3 font-medium">Entry date</th>
                   <th className="px-3 py-3 text-right font-medium">Gross earning</th>
+                  <th className="px-3 py-3 font-medium">Earning sources</th>
+                  <th className="px-3 py-3 font-medium">Adjustments</th>
                   <th className="px-3 py-3 text-right font-medium">Cash</th>
                   <th className="px-3 py-3 text-right font-medium">Gas card</th>
                   <th className="px-5 py-3 font-medium">Last updated</th>
@@ -211,7 +270,7 @@ function DriverHistoryPage() {
               <tbody>
                 {!loading && entries.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="p-10 text-center text-muted-foreground">
+                    <td colSpan={8} className="p-10 text-center text-muted-foreground">
                       No entries in this date range.
                     </td>
                   </tr>
@@ -220,6 +279,10 @@ function DriverHistoryPage() {
                   <EntryHistoryRow
                     key={entry.id}
                     entry={entry}
+                    earnings={entryEarnings.filter((item) => item.entry_id === entry.id)}
+                    adjustments={entryAdjustments.filter((item) => item.entry_id === entry.id)}
+                    sources={sources}
+                    adjustmentTypes={adjustmentTypes}
                     onSave={saveEntry}
                     onDelete={() => setEntryToDelete(entry)}
                   />
@@ -245,7 +308,8 @@ function DriverHistoryPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this entry?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently deletes the settlement record for {entryToDelete && formatDateShort(entryToDelete.date)}.
+              This permanently deletes the settlement record for{" "}
+              {entryToDelete && formatDateShort(entryToDelete.date)}.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -267,7 +331,13 @@ function DriverHistoryPage() {
   );
 }
 
-function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: DateRange) => void }) {
+function RangePicker({
+  range,
+  onChange,
+}: {
+  range: DateRange;
+  onChange: (range: DateRange) => void;
+}) {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<DayPickerRange | undefined>({
     from: parseISO(range.from),
@@ -283,8 +353,8 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: 
     range.preset === "allTime"
       ? "All time"
       : range.preset === "custom"
-      ? `${formatDateShort(range.from)} → ${formatDateShort(range.to)}`
-      : (presets.find((preset) => preset.key === range.preset)?.label ?? "Date range");
+        ? `${formatDateShort(range.from)} → ${formatDateShort(range.to)}`
+        : (presets.find((preset) => preset.key === range.preset)?.label ?? "Date range");
 
   return (
     <Popover
@@ -354,10 +424,18 @@ function RangePicker({ range, onChange }: { range: DateRange; onChange: (range: 
 
 function EntryHistoryRow({
   entry,
+  earnings,
+  adjustments,
+  sources,
+  adjustmentTypes,
   onSave,
   onDelete,
 }: {
   entry: EntryDraft;
+  earnings: EntryEarning[];
+  adjustments: EntryAdjustment[];
+  sources: EarningSource[];
+  adjustmentTypes: AdjustmentType[];
   onSave: (entry: EntryDraft) => Promise<void>;
   onDelete: () => void;
 }) {
@@ -375,7 +453,54 @@ function EntryHistoryRow({
     <tr className="border-b border-border/60 last:border-0">
       <td className="px-5 py-3 font-medium">{formatDateShort(entry.date)}</td>
       <td className="px-3 py-2 text-right">
-        <AmountInput value={gross} onChange={setGross} />
+        <AmountInput value={gross} onChange={setGross} disabled={earnings.length > 0} />
+      </td>
+      <td className="px-3 py-3">
+        {earnings.length > 0 ? (
+          <div className="space-y-1 text-xs">
+            {earnings.map((earning) => (
+              <div key={earning.id} className="flex min-w-40 justify-between gap-3">
+                <span>
+                  {sources.find((source) => source.id === earning.source_id)?.name ?? "App"}
+                </span>
+                <span className="font-medium tabular-nums">
+                  {Number(earning.amount).toFixed(2)} zł
+                </span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">Unallocated legacy gross</span>
+        )}
+      </td>
+      <td className="px-3 py-3">
+        {adjustments.length > 0 ? (
+          <div className="space-y-1 text-xs">
+            {adjustments.map((adjustment) => {
+              const type = adjustmentTypes.find(
+                (item) => item.id === adjustment.adjustment_type_id,
+              );
+              const total = Number(adjustment.amount) * Number(adjustment.quantity);
+              return (
+                <div key={adjustment.id} className="flex min-w-44 justify-between gap-3">
+                  <span>{type?.name ?? "Adjustment"}</span>
+                  <span
+                    className={
+                      type?.direction === "addition"
+                        ? "font-medium text-emerald-700"
+                        : "font-medium text-destructive"
+                    }
+                  >
+                    {type?.direction === "addition" ? "+" : "−"}
+                    {total.toFixed(2)} zł
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <span className="text-xs text-muted-foreground">None</span>
+        )}
       </td>
       <td className="px-3 py-2 text-right">
         <AmountInput value={cash} onChange={setCash} />
@@ -403,7 +528,12 @@ function EntryHistoryRow({
           >
             <Save className="h-4 w-4" /> Save
           </Button>
-          <Button size="sm" variant="outline" className="rounded-xl text-destructive" onClick={onDelete}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="rounded-xl text-destructive"
+            onClick={onDelete}
+          >
             <Trash2 className="h-4 w-4" /> Delete
           </Button>
         </div>
@@ -412,12 +542,24 @@ function EntryHistoryRow({
   );
 }
 
-function AmountInput({ value, onChange }: { value: string; onChange: (value: string) => void }) {
+function AmountInput({
+  value,
+  onChange,
+  disabled = false,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}) {
   return (
     <Input
       inputMode="decimal"
       className="ml-auto h-9 w-28 rounded-lg text-right tabular-nums"
       value={value}
+      disabled={disabled}
+      title={
+        disabled ? "Edit this gross total from the app breakdown on the Drivers page." : undefined
+      }
       onFocus={(event) => event.currentTarget.select()}
       onChange={(event) => onChange(event.target.value)}
     />
