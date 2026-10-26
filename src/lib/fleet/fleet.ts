@@ -36,6 +36,14 @@ export interface DriverRow {
   additions: number;
   extraDeductions: number;
   netAdjustments: number;
+  deductionBreakdown: {
+    id: string;
+    name: string;
+    amount: number;
+    type: Deduction["type"];
+    value: number;
+    applyTo: Deduction["applyTo"];
+  }[];
   sourceEarnings: { sourceId: string; name: string; amount: number; cash: number }[];
   adjustments: EntryAdjustment[];
   payout: number;
@@ -75,7 +83,8 @@ export function buildDriverRow(
   const gross = mine.reduce((s, e) => s + Number(e.gross || 0), 0);
   const cash = mine.reduce((s, e) => s + Number(e.cash || 0), 0);
   const gasCard = mine.reduce((s, e) => s + Number(e.gas_card || 0), 0);
-  const vat = applyDeductions(gross, deductions).total;
+  const appliedDeductions = applyDeductions(gross, deductions);
+  const vat = appliedDeductions.total;
   const weeks = weeksWithEntries(mine);
   const fee = driver.app_fee_override ?? weeklyAppFee;
   const appFee = weeks * Number(fee || 0);
@@ -97,6 +106,15 @@ export function buildDriverRow(
     additions,
     extraDeductions,
     netAdjustments,
+    deductionBreakdown: appliedDeductions.results.map((result) => {
+      const setting = deductions.find((deduction) => deduction.id === result.id)!;
+      return {
+        ...result,
+        type: setting.type,
+        value: setting.value,
+        applyTo: setting.applyTo,
+      };
+    }),
     sourceEarnings: [],
     adjustments,
     payout: gross - appFee - cash - vat - gasCard + netAdjustments,
@@ -121,18 +139,19 @@ export function invoiceHtml(
   const documentNumber = `SET-${row.driver.code}-${to.replaceAll("-", "")}`;
   const activeSources = row.sourceEarnings.filter((source) => source.amount > 0 || source.cash > 0);
   const totalCosts = row.vat + row.appFee + row.gasCard + row.extraDeductions;
+  const percent = (value: number) => value.toLocaleString("en-US", { maximumFractionDigits: 2 });
   const summaryCard = (label: string, value: string, detail: string, accent = false) =>
     `<td width="25%" valign="top" style="padding:0 5px">
-      <div style="min-height:78px;padding:14px 13px;border:1px solid ${accent ? "#86efac" : "#dce5e1"};border-radius:12px;background:${accent ? "#ecfdf3" : "#f8faf9"}">
-        <div style="font-size:10px;line-height:14px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:${accent ? "#08783e" : "#64748b"}">${label}</div>
-        <div style="margin-top:5px;font-size:18px;line-height:23px;font-weight:800;color:${accent ? "#08783e" : "#17222d"}">${value}</div>
+      <div style="min-height:78px;padding:14px 13px;border:1px solid ${accent ? "#93c5fd" : "#dbe5f1"};border-radius:12px;background:${accent ? "#eff6ff" : "#f8fafc"}">
+        <div style="font-size:10px;line-height:14px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:${accent ? "#1d4ed8" : "#64748b"}">${label}</div>
+        <div style="margin-top:5px;font-size:18px;line-height:23px;font-weight:800;color:${accent ? "#1d4ed8" : "#13233a"}">${value}</div>
         <div style="margin-top:3px;font-size:10px;line-height:14px;color:#718096">${detail}</div>
       </div>
     </td>`;
   const calculationLine = (label: string, value: string, strong = false) =>
     `<tr>
-      <td style="padding:${strong ? "13px 0 4px" : "7px 0"};border-top:${strong ? "2px solid #0f9d58" : "0"};font-size:${strong ? "14px" : "12px"};font-weight:${strong ? 800 : 600};color:${strong ? "#08783e" : "#4a5568"}">${label}</td>
-      <td align="right" style="padding:${strong ? "13px 0 4px" : "7px 0"};border-top:${strong ? "2px solid #0f9d58" : "0"};font-size:${strong ? "18px" : "12px"};font-weight:800;color:${strong ? "#08783e" : "#17222d"};white-space:nowrap">${value}</td>
+      <td style="padding:${strong ? "13px 0 4px" : "7px 0"};border-top:${strong ? "2px solid #2563eb" : "0"};font-size:${strong ? "14px" : "12px"};font-weight:${strong ? 800 : 600};color:${strong ? "#1d4ed8" : "#4a5568"}">${label}</td>
+      <td align="right" style="padding:${strong ? "13px 0 4px" : "7px 0"};border-top:${strong ? "2px solid #2563eb" : "0"};font-size:${strong ? "18px" : "12px"};font-weight:800;color:${strong ? "#1d4ed8" : "#13233a"};white-space:nowrap">${value}</td>
     </tr>`;
 
   const platformRows =
@@ -140,24 +159,33 @@ export function invoiceHtml(
       ? activeSources
           .map(
             (source) => `<tr>
-              <td style="padding:11px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;font-weight:700;color:#17222d">${escapeHtml(source.name)}</td>
-              <td align="right" style="padding:11px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;color:#334155;white-space:nowrap">${money(source.amount)}</td>
-              <td align="right" style="padding:11px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;color:#b45309;white-space:nowrap">${money(source.cash)}</td>
-              <td align="right" style="padding:11px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;font-weight:700;color:#17222d;white-space:nowrap">${money(source.amount - source.cash)}</td>
+              <td style="padding:11px 12px;border-bottom:1px solid #e6edf5;font-size:12px;font-weight:700;color:#17222d">${escapeHtml(source.name)}</td>
+              <td align="right" style="padding:11px 12px;border-bottom:1px solid #e6edf5;font-size:12px;color:#334155;white-space:nowrap">${money(source.amount)}</td>
+              <td align="right" style="padding:11px 12px;border-bottom:1px solid #e6edf5;font-size:12px;color:#b45309;white-space:nowrap">${money(source.cash)}</td>
+              <td align="right" style="padding:11px 12px;border-bottom:1px solid #e6edf5;font-size:12px;font-weight:700;color:#17222d;white-space:nowrap">${money(source.amount - source.cash)}</td>
             </tr>`,
           )
           .join("")
       : `<tr>
-          <td style="padding:11px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;font-weight:700;color:#17222d">Unallocated earnings</td>
-          <td align="right" style="padding:11px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;color:#334155;white-space:nowrap">${money(row.gross)}</td>
-          <td align="right" style="padding:11px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;color:#b45309;white-space:nowrap">${money(row.cash)}</td>
-          <td align="right" style="padding:11px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;font-weight:700;color:#17222d;white-space:nowrap">${money(row.gross - row.cash)}</td>
+          <td style="padding:11px 12px;border-bottom:1px solid #e6edf5;font-size:12px;font-weight:700;color:#17222d">Unallocated earnings</td>
+          <td align="right" style="padding:11px 12px;border-bottom:1px solid #e6edf5;font-size:12px;color:#334155;white-space:nowrap">${money(row.gross)}</td>
+          <td align="right" style="padding:11px 12px;border-bottom:1px solid #e6edf5;font-size:12px;color:#b45309;white-space:nowrap">${money(row.cash)}</td>
+          <td align="right" style="padding:11px 12px;border-bottom:1px solid #e6edf5;font-size:12px;font-weight:700;color:#17222d;white-space:nowrap">${money(row.gross - row.cash)}</td>
         </tr>`;
 
   const costRows = [
-    row.vat > 0
-      ? ["Fleet commission / VAT", "Calculated from gross earnings", row.vat, "deduction"]
-      : null,
+    ...row.deductionBreakdown
+      .filter((deduction) => deduction.amount > 0)
+      .map((deduction) => [
+        deduction.type === "percent"
+          ? `${deduction.name} (${percent(deduction.value)}%)`
+          : deduction.name,
+        deduction.type === "percent"
+          ? `Applied to ${deduction.applyTo === "gross" ? "gross earnings" : "the running balance"}`
+          : `Fixed deduction applied to ${deduction.applyTo === "gross" ? "gross earnings" : "the running balance"}`,
+        deduction.amount,
+        "deduction",
+      ]),
     row.appFee > 0
       ? [
           "Application fee",
@@ -180,9 +208,9 @@ export function invoiceHtml(
       ? costRows
           .map(
             ([label, detail, value, direction]) => `<tr>
-              <td style="padding:10px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;font-weight:700;color:#17222d">${escapeHtml(label)}</td>
-              <td style="padding:10px 12px;border-bottom:1px solid #e7eeeb;font-size:11px;color:#64748b">${escapeHtml(detail)}</td>
-              <td align="right" style="padding:10px 12px;border-bottom:1px solid #e7eeeb;font-size:12px;font-weight:700;color:${direction === "addition" ? "#08783e" : "#b42318"};white-space:nowrap">${direction === "addition" ? "+" : "-"} ${money(value)}</td>
+              <td style="padding:10px 12px;border-bottom:1px solid #e6edf5;font-size:12px;font-weight:700;color:#17222d">${escapeHtml(label)}</td>
+              <td style="padding:10px 12px;border-bottom:1px solid #e6edf5;font-size:11px;color:#64748b">${escapeHtml(detail)}</td>
+              <td align="right" style="padding:10px 12px;border-bottom:1px solid #e6edf5;font-size:12px;font-weight:700;color:${direction === "addition" ? "#08783e" : "#b42318"};white-space:nowrap">${direction === "addition" ? "+" : "-"} ${money(value)}</td>
             </tr>`,
           )
           .join("")
@@ -191,21 +219,21 @@ export function invoiceHtml(
   return `<!doctype html><html><head><meta charset="utf-8"/>
 <title>Settlement ${escapeHtml(documentNumber)}</title>
 <style>
-  *{box-sizing:border-box} body{margin:0;background:#edf3f0;font-family:Arial,Helvetica,sans-serif;color:#17222d;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  *{box-sizing:border-box} body{margin:0;background:#eef3f9;font-family:Arial,Helvetica,sans-serif;color:#13233a;-webkit-print-color-adjust:exact;print-color-adjust:exact}
   @page{size:A4;margin:8mm} @media print{body{background:#fff}.page{max-width:none!important;border:0!important;border-radius:0!important;box-shadow:none!important}.screen-pad{padding:0!important}}
 </style></head>
 <body>
   <table class="screen-pad" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr><td align="center" style="padding:28px 14px">
-    <table class="page" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:760px;background:#ffffff;border:1px solid #dce5e1;border-radius:18px;overflow:hidden;box-shadow:0 12px 36px rgba(23,34,45,.10)">
-      <tr><td style="padding:26px 30px;background:#08783e;color:#ffffff">
+    <table class="page" role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="max-width:760px;background:#ffffff;border:1px solid #dbe5f1;border-radius:18px;overflow:hidden;box-shadow:0 12px 36px rgba(19,35,58,.10)">
+      <tr><td style="padding:26px 30px;background:#102a4c;color:#ffffff">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
           <td valign="top">
-            <div style="font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#bbf7d0">Fleet partner settlement</div>
+            <div style="font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#a9ceff">Fleet partner settlement</div>
             <div style="margin-top:7px;font-size:25px;line-height:30px;font-weight:800">${escapeHtml(company)}</div>
           </td>
           <td align="right" valign="top">
             <div style="font-size:16px;line-height:21px;font-weight:800">Driver settlement statement</div>
-            <div style="margin-top:5px;font-size:11px;line-height:16px;color:#d1fae5">${escapeHtml(documentNumber)}</div>
+            <div style="margin-top:5px;font-size:11px;line-height:16px;color:#c9ddf8">${escapeHtml(documentNumber)}</div>
           </td>
         </tr></table>
       </td></tr>
@@ -231,7 +259,7 @@ export function invoiceHtml(
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
           ${summaryCard("Gross earnings", money(row.gross), "Across all assigned apps")}
           ${summaryCard("Cash collected", money(row.cash), "Already received by driver")}
-          ${summaryCard("Fleet costs", money(totalCosts), "Fees and deductions")}
+          ${summaryCard("Fleet costs", money(totalCosts), "Commission, fees and deductions")}
           ${summaryCard("Amount to transfer", money(row.payout), "Final bank payout", true)}
         </tr></table>
       </td></tr>
@@ -239,15 +267,15 @@ export function invoiceHtml(
       <tr><td style="padding:25px 30px 0">
         <div style="font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#334155">1. Earnings by app</div>
         <div style="margin-top:5px;font-size:11px;line-height:16px;color:#718096">Gross earnings and cash collected are shown separately for every platform.</div>
-        <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:10px;border:1px solid #dce5e1;border-radius:10px;border-collapse:separate;border-spacing:0;overflow:hidden">
-          <thead><tr style="background:#f1f6f3">
+        <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:10px;border:1px solid #dbe5f1;border-radius:10px;border-collapse:separate;border-spacing:0;overflow:hidden">
+          <thead><tr style="background:#f1f5f9">
             <th align="left" style="padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b">App</th>
             <th align="right" style="padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b">Gross</th>
             <th align="right" style="padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b">Cash collected</th>
             <th align="right" style="padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b">Via fleet</th>
           </tr></thead>
           <tbody>${platformRows}</tbody>
-          <tfoot><tr style="background:#f8faf9">
+          <tfoot><tr style="background:#f8fafc">
             <td style="padding:11px 12px;font-size:12px;font-weight:800;color:#17222d">Total</td>
             <td align="right" style="padding:11px 12px;font-size:12px;font-weight:800;color:#17222d;white-space:nowrap">${money(row.gross)}</td>
             <td align="right" style="padding:11px 12px;font-size:12px;font-weight:800;color:#b45309;white-space:nowrap">${money(row.cash)}</td>
@@ -258,8 +286,8 @@ export function invoiceHtml(
 
       <tr><td style="padding:25px 30px 0">
         <div style="font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#334155">2. Fleet costs and adjustments</div>
-        <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:10px;border:1px solid #dce5e1;border-radius:10px;border-collapse:separate;border-spacing:0;overflow:hidden">
-          <thead><tr style="background:#f1f6f3">
+        <table width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:10px;border:1px solid #dbe5f1;border-radius:10px;border-collapse:separate;border-spacing:0;overflow:hidden">
+          <thead><tr style="background:#f1f5f9">
             <th align="left" style="padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b">Item</th>
             <th align="left" style="padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b">Details</th>
             <th align="right" style="padding:9px 12px;font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#64748b">Effect on payout</th>
@@ -269,7 +297,7 @@ export function invoiceHtml(
       </td></tr>
 
       <tr><td style="padding:25px 30px 0">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8faf9;border:1px solid #cfe1d7;border-radius:12px"><tr>
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background:#f8fafc;border:1px solid #cbdcf1;border-radius:12px"><tr>
           <td valign="top" style="padding:18px 20px" width="48%">
             <div style="font-size:12px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:#334155">3. Final payout</div>
             <div style="margin-top:7px;font-size:11px;line-height:17px;color:#64748b">Cash collected was already received directly by the driver. The amount to transfer is the remaining settlement after fleet costs and adjustments.</div>
@@ -282,8 +310,8 @@ export function invoiceHtml(
           <td valign="top" style="padding:13px 20px 16px" width="52%">
             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
               ${calculationLine("Gross earnings", money(row.gross))}
-              ${calculationLine("Less cash already collected", `- ${money(row.cash)}`)}
-              ${calculationLine("Less fleet costs", `- ${money(totalCosts)}`)}
+              ${calculationLine("Cash already collected", `- ${money(row.cash)}`)}
+              ${calculationLine("Fleet costs", `- ${money(totalCosts)}`)}
               ${row.additions > 0 ? calculationLine("Plus additions", `+ ${money(row.additions)}`) : ""}
               ${calculationLine("Amount to transfer", money(row.payout), true)}
             </table>
