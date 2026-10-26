@@ -28,6 +28,7 @@ export interface EntryEarning {
   entry_id: string;
   source_id: string;
   amount: number;
+  cash_amount: number;
 }
 
 export interface AdjustmentType {

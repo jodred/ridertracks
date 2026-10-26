@@ -250,10 +250,10 @@ export function polishDocumentHtml(args: {
           ["Do wypłaty", money(calculation.netPay)],
         ];
   const earningRows = driver.sourceEarnings
-    .filter((source) => source.amount > 0)
+    .filter((source) => source.amount > 0 || source.cash > 0)
     .map(
       (source) =>
-        `<tr><td>${escapeHtml(source.name)}</td><td class="right">${escapeHtml(money(source.amount))}</td></tr>`,
+        `<tr><td>${escapeHtml(source.name)} – przychód brutto</td><td class="right">${escapeHtml(money(source.amount))}</td></tr><tr><td>${escapeHtml(source.name)} – pobrana gotówka</td><td class="right">− ${escapeHtml(money(source.cash))}</td></tr>`,
     )
     .join("");
   return `<!doctype html><html lang="pl"><head><meta charset="utf-8"><title>${escapeHtml(title)} ${escapeHtml(documentNumber)}</title>

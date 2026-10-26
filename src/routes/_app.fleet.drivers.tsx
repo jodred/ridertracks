@@ -1,5 +1,5 @@
 import { createFileRoute, Link, Outlet, useMatches } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import {
   Calendar as CalendarIcon,
@@ -89,6 +89,11 @@ const presets: { key: DateRangePreset; label: string }[] = [
   { key: "allTime", label: "All time" },
 ];
 
+interface AppEarningValue {
+  gross: number;
+  cash: number;
+}
+
 function DriversLayout() {
   const matches = useMatches();
   const isDriverHistory = matches.some(
@@ -173,7 +178,7 @@ function DriversPage() {
     const [earningResult, adjustmentResult] = await Promise.all([
       supabase
         .from("fleet_entry_earnings")
-        .select("id, fleet_user_id, entry_id, source_id, amount")
+        .select("id, fleet_user_id, entry_id, source_id, amount, cash_amount")
         .in("entry_id", entryIds),
       supabase
         .from("fleet_entry_adjustments")
@@ -192,6 +197,7 @@ function DriversPage() {
       (earningResult.data ?? []).map((item) => ({
         ...item,
         amount: Number(item.amount),
+        cash_amount: Number(item.cash_amount),
       })) as EntryEarning[],
     );
     setEntryAdjustments(
@@ -237,6 +243,11 @@ function DriversPage() {
                 (earning) => entryIds.includes(earning.entry_id) && earning.source_id === source.id,
               )
               .reduce((sum, earning) => sum + Number(earning.amount || 0), 0),
+            cash: entryEarnings
+              .filter(
+                (earning) => entryIds.includes(earning.entry_id) && earning.source_id === source.id,
+              )
+              .reduce((sum, earning) => sum + Number(earning.cash_amount || 0), 0),
           }));
         return row;
       }),
@@ -328,7 +339,10 @@ function DriversPage() {
     return data;
   }
 
-  async function saveGrossBreakdown(driverId: string, totalsBySource: Record<string, number>) {
+  async function saveEarningsBreakdown(
+    driverId: string,
+    totalsBySource: Record<string, AppEarningValue>,
+  ) {
     if (!user) return false;
     const targetEntry = await ensureTargetEntry(driverId);
     if (!targetEntry) return false;
@@ -337,7 +351,7 @@ function DriversPage() {
         .filter((entry) => entry.driver_id === driverId && entry.id)
         .map((entry) => [entry.id!, entry.date]),
     );
-    const rowsToSave = Object.entries(totalsBySource).map(([sourceId, requestedTotal]) => {
+    const rowsToSave = Object.entries(totalsBySource).map(([sourceId, requested]) => {
       const amountOnOtherDays = entryEarnings
         .filter(
           (earning) =>
@@ -346,11 +360,20 @@ function DriversPage() {
             driverEntryIdsByDate.has(earning.entry_id),
         )
         .reduce((sum, earning) => sum + Number(earning.amount || 0), 0);
+      const cashOnOtherDays = entryEarnings
+        .filter(
+          (earning) =>
+            earning.source_id === sourceId &&
+            earning.entry_id !== targetEntry.id &&
+            driverEntryIdsByDate.has(earning.entry_id),
+        )
+        .reduce((sum, earning) => sum + Number(earning.cash_amount || 0), 0);
       return {
         fleet_user_id: user.id,
         entry_id: targetEntry.id,
         source_id: sourceId,
-        amount: Math.max(0, Number(requestedTotal || 0) - amountOnOtherDays),
+        amount: Math.max(0, Number(requested.gross || 0) - amountOnOtherDays),
+        cash_amount: Math.max(0, Number(requested.cash || 0) - cashOnOtherDays),
       };
     });
     if (rowsToSave.length === 0) return false;
@@ -361,7 +384,20 @@ function DriversPage() {
       toast.error(error.message);
       return false;
     }
-    toast.success("Gross earnings breakdown saved");
+    const { error: draftDeleteError } = await supabase
+      .from("fleet_entry_earning_drafts")
+      .delete()
+      .eq("driver_id", driverId)
+      .eq("period_from", range.from)
+      .eq("period_to", range.to);
+    if (draftDeleteError) {
+      toast.error(
+        "Earnings were confirmed, but the saved draft could not be cleared. Try Save again.",
+      );
+      await load();
+      return false;
+    }
+    toast.success("App earnings and cash confirmed");
     await load();
     return true;
   }
@@ -567,10 +603,15 @@ function DriversPage() {
                       </Button>
                     </td>
                     <td className="px-2 py-2 text-right">
-                      <NumberCell
-                        value={r.cash}
-                        onCommit={(v) => saveCell(r.driver.id, "cash", v)}
-                      />
+                      <Button
+                        variant="outline"
+                        className="h-9 min-w-24 justify-end rounded-lg tabular-nums"
+                        onClick={() => setGrossDriverId(r.driver.id)}
+                        title="View cash collected by app"
+                      >
+                        {formatMoney(r.cash, currency)}
+                        <ChevronDown className="h-3 w-3" />
+                      </Button>
                     </td>
                     <td className="px-2 py-2 text-right">
                       <NumberCell
@@ -671,14 +712,19 @@ function DriversPage() {
         open={Boolean(grossRow)}
         row={grossRow}
         sources={grossSources}
+        userId={user?.id ?? ""}
         currency={currency}
         range={range}
         onOpenChange={(open) => {
           if (!open) setGrossDriverId(null);
         }}
         onSave={async (values) => {
-          if (!grossRow) return;
-          if (await saveGrossBreakdown(grossRow.driver.id, values)) setGrossDriverId(null);
+          if (!grossRow) return false;
+          if (await saveEarningsBreakdown(grossRow.driver.id, values)) {
+            setGrossDriverId(null);
+            return true;
+          }
+          return false;
         }}
       />
 
@@ -741,10 +787,41 @@ function DriversPage() {
   );
 }
 
+interface AppEarningInput {
+  gross: string;
+  cash: string;
+}
+
+type DraftSaveState = "loading" | "ready" | "saving" | "saved" | "offline" | "discarded";
+
+function confirmedAppValues(row: DriverRow, sources: EarningSource[]) {
+  return Object.fromEntries(
+    sources.map((source) => {
+      const confirmed = row.sourceEarnings.find((earning) => earning.sourceId === source.id);
+      return [
+        source.id,
+        {
+          gross: String(confirmed?.amount ?? 0),
+          cash: String(confirmed?.cash ?? 0),
+        },
+      ];
+    }),
+  ) as Record<string, AppEarningInput>;
+}
+
+function earningDraftStorageKey(
+  userId: string,
+  driverId: string,
+  range: Pick<DateRange, "from" | "to">,
+) {
+  return `ridetracks:earning-draft:${userId}:${driverId}:${range.from}:${range.to}`;
+}
+
 function GrossBreakdownDialog({
   open,
   row,
   sources,
+  userId,
   currency,
   range,
   onOpenChange,
@@ -753,46 +830,225 @@ function GrossBreakdownDialog({
   open: boolean;
   row: DriverRow | null;
   sources: EarningSource[];
+  userId: string;
   currency: string;
   range: DateRange;
   onOpenChange: (open: boolean) => void;
-  onSave: (values: Record<string, number>) => Promise<void>;
+  onSave: (values: Record<string, AppEarningValue>) => Promise<boolean>;
 }) {
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, AppEarningInput>>({});
   const [saving, setSaving] = useState(false);
+  const [draftState, setDraftState] = useState<DraftSaveState>("ready");
+  const valuesRef = useRef(values);
+  const dirtyRef = useRef(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeKeyRef = useRef("");
+  const saveChainRef = useRef<Promise<boolean>>(Promise.resolve(true));
+  const saveRevisionRef = useRef(0);
+  const driverId = row?.driver.id ?? "";
+  const sourceKey = sources.map((source) => source.id).join(",");
+  const storageKey = driverId ? earningDraftStorageKey(userId, driverId, range) : "";
+
+  const persistDraft = useCallback(
+    (draftValues: Record<string, AppEarningInput>) => {
+      if (!userId || !driverId || Object.keys(draftValues).length === 0) return false;
+      const revision = ++saveRevisionRef.current;
+      const snapshot = structuredClone(draftValues);
+      setDraftState("saving");
+      const task = saveChainRef.current.then(
+        async () => {
+          const { error } = await supabase.from("fleet_entry_earning_drafts").upsert(
+            Object.entries(snapshot).map(([sourceId, value]) => ({
+              fleet_user_id: userId,
+              driver_id: driverId,
+              source_id: sourceId,
+              period_from: range.from,
+              period_to: range.to,
+              gross_amount: Math.max(0, Number(value.gross) || 0),
+              cash_amount: Math.max(0, Number(value.cash) || 0),
+            })),
+            { onConflict: "driver_id,source_id,period_from,period_to" },
+          );
+          if (revision === saveRevisionRef.current) {
+            if (error) {
+              setDraftState("offline");
+            } else {
+              dirtyRef.current = false;
+              setDraftState("saved");
+            }
+          }
+          return !error;
+        },
+        async () => false,
+      );
+      saveChainRef.current = task;
+      return task;
+    },
+    [driverId, range.from, range.to, userId],
+  );
 
   useEffect(() => {
-    if (!open || !row) return;
-    setValues(
-      Object.fromEntries(
-        sources.map((source) => [
-          source.id,
-          String(row.sourceEarnings.find((earning) => earning.sourceId === source.id)?.amount ?? 0),
-        ]),
-      ),
-    );
-  }, [open, row, sources]);
+    if (!open || !row || !userId) return;
+    const nextKey = earningDraftStorageKey(userId, row.driver.id, {
+      from: range.from,
+      to: range.to,
+    });
+    activeKeyRef.current = nextKey;
+    dirtyRef.current = false;
+    setDraftState("loading");
+    const confirmed = confirmedAppValues(row, sources);
+    let localDraft: { updatedAt: number; values: Record<string, AppEarningInput> } | null = null;
+    try {
+      const stored = localStorage.getItem(nextKey);
+      if (stored) localDraft = JSON.parse(stored);
+    } catch {
+      localDraft = null;
+    }
+    (async () => {
+      const { data, error } = await supabase
+        .from("fleet_entry_earning_drafts")
+        .select("source_id, gross_amount, cash_amount, updated_at")
+        .eq("driver_id", row.driver.id)
+        .eq("period_from", range.from)
+        .eq("period_to", range.to);
+      if (activeKeyRef.current !== nextKey) return;
+      const serverUpdatedAt = Math.max(
+        0,
+        ...(data ?? []).map((draft) => new Date(draft.updated_at).getTime()),
+      );
+      const useLocal = Boolean(localDraft && localDraft.updatedAt > serverUpdatedAt);
+      const restored = useLocal
+        ? localDraft!.values
+        : (data?.length ?? 0) > 0
+          ? Object.fromEntries(
+              sources.map((source) => {
+                const draft = data?.find((item) => item.source_id === source.id);
+                return [
+                  source.id,
+                  {
+                    gross: String(draft?.gross_amount ?? confirmed[source.id]?.gross ?? 0),
+                    cash: String(draft?.cash_amount ?? confirmed[source.id]?.cash ?? 0),
+                  },
+                ];
+              }),
+            )
+          : confirmed;
+      valuesRef.current = restored;
+      setValues(restored);
+      setDraftState(error ? "offline" : useLocal || (data?.length ?? 0) > 0 ? "saved" : "ready");
+      if (useLocal) {
+        dirtyRef.current = true;
+        void persistDraft(restored);
+      }
+    })();
+  }, [open, row, range.from, range.to, sourceKey, sources, userId, persistDraft]);
 
-  const total = sources.reduce(
-    (sum, source) => sum + Math.max(0, Number(values[source.id]) || 0),
+  useEffect(() => {
+    const flushWhenHidden = () => {
+      if (document.visibilityState === "hidden" && dirtyRef.current) {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        void persistDraft(valuesRef.current);
+      }
+    };
+    document.addEventListener("visibilitychange", flushWhenHidden);
+    return () => document.removeEventListener("visibilitychange", flushWhenHidden);
+  }, [persistDraft]);
+
+  function updateValue(sourceId: string, field: keyof AppEarningInput, value: string) {
+    const next = {
+      ...valuesRef.current,
+      [sourceId]: { ...valuesRef.current[sourceId], [field]: value },
+    };
+    valuesRef.current = next;
+    setValues(next);
+    dirtyRef.current = true;
+    setDraftState("saving");
+    if (storageKey) {
+      try {
+        localStorage.setItem(storageKey, JSON.stringify({ updatedAt: Date.now(), values: next }));
+      } catch {
+        // The Supabase draft remains the durable fallback when browser storage is unavailable.
+      }
+    }
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => void persistDraft(next), 700);
+  }
+
+  async function closeAndKeepDraft() {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    if (dirtyRef.current) await persistDraft(valuesRef.current);
+    onOpenChange(false);
+  }
+
+  async function discardDraft() {
+    if (!row || !confirm("Discard every unfinished gross and cash value for this period?")) return;
+    if (timerRef.current) clearTimeout(timerRef.current);
+    const { error } = await supabase
+      .from("fleet_entry_earning_drafts")
+      .delete()
+      .eq("driver_id", row.driver.id)
+      .eq("period_from", range.from)
+      .eq("period_to", range.to);
+    if (error) return toast.error(error.message);
+    if (storageKey) {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch {
+        // Ignore unavailable browser storage after the server draft has been removed.
+      }
+    }
+    const confirmed = confirmedAppValues(row, sources);
+    valuesRef.current = confirmed;
+    setValues(confirmed);
+    dirtyRef.current = false;
+    setDraftState("discarded");
+    toast.success("Unfinished figures discarded");
+  }
+
+  const grossTotal = sources.reduce(
+    (sum, source) => sum + Math.max(0, Number(values[source.id]?.gross) || 0),
     0,
   );
-  const hasAllocatedEarnings = row?.sourceEarnings.some((source) => source.amount > 0) ?? false;
+  const cashTotal = sources.reduce(
+    (sum, source) => sum + Math.max(0, Number(values[source.id]?.cash) || 0),
+    0,
+  );
+  const hasAllocatedEarnings =
+    row?.sourceEarnings.some((source) => source.amount > 0 || source.cash > 0) ?? false;
+  const draftMessage =
+    draftState === "loading"
+      ? "Loading saved figures…"
+      : draftState === "saving"
+        ? "Saving draft…"
+        : draftState === "saved"
+          ? "Draft saved"
+          : draftState === "offline"
+            ? "Saved in this browser — online backup will retry when you edit"
+            : draftState === "discarded"
+              ? "Draft discarded"
+              : "Figures are saved as a draft when you edit";
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) void closeAndKeepDraft();
+      }}
+    >
+      <DialogContent className="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>Gross earnings · {row?.driver.name ?? "Driver"}</DialogTitle>
+          <DialogTitle>Earnings by app · {row?.driver.name ?? "Driver"}</DialogTitle>
           <DialogDescription>
-            {formatDateShort(range.from)} → {formatDateShort(range.to)}. Only apps assigned to this
-            driver appear here.
+            {formatDateShort(range.from)} → {formatDateShort(range.to)}. Enter gross and cash for
+            each assigned app. Closing this window keeps unfinished figures.
           </DialogDescription>
         </DialogHeader>
-        {row && row.gross > 0 && !hasAllocatedEarnings && (
+        {row && (row.gross > 0 || row.cash > 0) && !hasAllocatedEarnings && (
           <div className="rounded-xl bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-200">
-            The existing {formatMoney(row.gross, currency)} is legacy unallocated gross. Saving this
-            form replaces it with the app breakdown below.
+            The existing {formatMoney(row.gross, currency)} gross and{" "}
+            {formatMoney(row.cash, currency)}
+            cash are legacy unallocated values. Confirming this form replaces them with the app
+            breakdown below.
           </div>
         )}
         {sources.length === 0 ? (
@@ -802,62 +1058,133 @@ function GrossBreakdownDialog({
           </div>
         ) : (
           <div className="space-y-3">
-            {sources.map((source) => (
-              <label
-                key={source.id}
-                className="flex items-center gap-3 rounded-xl border border-border p-3"
-              >
-                <AppLogo source={source} />
-                <span className="min-w-0 flex-1 text-sm font-medium">{source.name}</span>
-                <div className="relative w-36">
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.01"
-                    value={values[source.id] ?? "0"}
-                    onChange={(event) =>
-                      setValues((current) => ({ ...current, [source.id]: event.target.value }))
-                    }
-                    className="rounded-xl pr-9 text-right tabular-nums"
-                    aria-label={`${source.name} gross earnings`}
-                  />
-                  <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {currency}
-                  </span>
+            <div className="hidden grid-cols-[1fr_150px_150px] gap-3 px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground sm:grid">
+              <span>App</span>
+              <span className="text-right">Gross earnings</span>
+              <span className="text-right">Cash collected</span>
+            </div>
+            {sources.map((source) => {
+              const gross = Number(values[source.id]?.gross) || 0;
+              const cash = Number(values[source.id]?.cash) || 0;
+              return (
+                <div key={source.id} className="rounded-xl border border-border p-3">
+                  <div className="grid items-center gap-3 sm:grid-cols-[1fr_150px_150px]">
+                    <div className="flex items-center gap-3">
+                      <AppLogo source={source} />
+                      <span className="min-w-0 flex-1 text-sm font-medium">{source.name}</span>
+                    </div>
+                    <MoneyInput
+                      label={`${source.name} gross earnings`}
+                      value={values[source.id]?.gross ?? "0"}
+                      currency={currency}
+                      onChange={(value) => updateValue(source.id, "gross", value)}
+                    />
+                    <MoneyInput
+                      label={`${source.name} cash collected`}
+                      value={values[source.id]?.cash ?? "0"}
+                      currency={currency}
+                      onChange={(value) => updateValue(source.id, "cash", value)}
+                    />
+                  </div>
+                  {cash > gross && (
+                    <p className="mt-2 text-right text-xs text-amber-700 dark:text-amber-300">
+                      Cash is higher than this app’s gross. You can still confirm it if this is an
+                      adjustment.
+                    </p>
+                  )}
                 </div>
-              </label>
-            ))}
-            <div className="flex items-center justify-between border-t border-border pt-4">
-              <span className="font-medium">Gross earnings total</span>
-              <span className="text-lg font-semibold tabular-nums">
-                {formatMoney(total, currency)}
+              );
+            })}
+            <div className="grid gap-2 border-t border-border pt-4 text-sm sm:grid-cols-[1fr_150px_150px]">
+              <span className="font-medium">Totals</span>
+              <span className="text-right text-lg font-semibold tabular-nums">
+                {formatMoney(grossTotal, currency)}
+              </span>
+              <span className="text-right text-lg font-semibold tabular-nums">
+                {formatMoney(cashTotal, currency)}
               </span>
             </div>
           </div>
         )}
+        <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+          <span>{draftMessage}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="text-destructive hover:text-destructive"
+            onClick={discardDraft}
+          >
+            Discard draft
+          </Button>
+        </div>
         <DialogFooter>
-          <Button variant="outline" className="rounded-xl" onClick={() => onOpenChange(false)}>
-            Cancel
+          <Button variant="outline" className="rounded-xl" onClick={closeAndKeepDraft}>
+            Close
           </Button>
           <Button
             className="rounded-xl"
-            disabled={sources.length === 0 || saving}
+            disabled={sources.length === 0 || saving || draftState === "loading"}
             onClick={async () => {
               setSaving(true);
-              await onSave(
+              const saved = await onSave(
                 Object.fromEntries(
-                  sources.map((source) => [source.id, Math.max(0, Number(values[source.id]) || 0)]),
+                  sources.map((source) => [
+                    source.id,
+                    {
+                      gross: Math.max(0, Number(values[source.id]?.gross) || 0),
+                      cash: Math.max(0, Number(values[source.id]?.cash) || 0),
+                    },
+                  ]),
                 ),
               );
+              if (saved && storageKey) {
+                if (timerRef.current) clearTimeout(timerRef.current);
+                try {
+                  localStorage.removeItem(storageKey);
+                } catch {
+                  // The confirmed server values remain authoritative.
+                }
+                dirtyRef.current = false;
+              }
               setSaving(false);
             }}
           >
-            {saving ? "Saving…" : "Save breakdown"}
+            {saving ? "Saving…" : "Save earnings"}
           </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
+  );
+}
+
+function MoneyInput({
+  label,
+  value,
+  currency,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  currency: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="relative">
+      <Input
+        type="number"
+        inputMode="decimal"
+        min="0"
+        step="0.01"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        className="rounded-xl pr-9 text-right tabular-nums"
+        aria-label={label}
+      />
+      <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+        {currency}
+      </span>
+    </div>
   );
 }
 

@@ -351,9 +351,61 @@ export type Database = {
           },
         ];
       };
+      fleet_entry_earning_drafts: {
+        Row: {
+          cash_amount: number;
+          created_at: string;
+          driver_id: string;
+          fleet_user_id: string;
+          gross_amount: number;
+          period_from: string;
+          period_to: string;
+          source_id: string;
+          updated_at: string;
+        };
+        Insert: {
+          cash_amount?: number;
+          created_at?: string;
+          driver_id: string;
+          fleet_user_id: string;
+          gross_amount?: number;
+          period_from: string;
+          period_to: string;
+          source_id: string;
+          updated_at?: string;
+        };
+        Update: {
+          cash_amount?: number;
+          created_at?: string;
+          driver_id?: string;
+          fleet_user_id?: string;
+          gross_amount?: number;
+          period_from?: string;
+          period_to?: string;
+          source_id?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "fleet_entry_earning_drafts_driver_id_fleet_user_id_fkey";
+            columns: ["driver_id", "fleet_user_id"];
+            isOneToOne: false;
+            referencedRelation: "fleet_drivers";
+            referencedColumns: ["id", "fleet_user_id"];
+          },
+          {
+            foreignKeyName: "fleet_entry_earning_drafts_source_id_fleet_user_id_fkey";
+            columns: ["source_id", "fleet_user_id"];
+            isOneToOne: false;
+            referencedRelation: "fleet_earning_sources";
+            referencedColumns: ["id", "fleet_user_id"];
+          },
+        ];
+      };
       fleet_entry_earnings: {
         Row: {
           amount: number;
+          cash_amount: number;
           created_at: string;
           entry_id: string;
           fleet_user_id: string;
@@ -363,6 +415,7 @@ export type Database = {
         };
         Insert: {
           amount?: number;
+          cash_amount?: number;
           created_at?: string;
           entry_id: string;
           fleet_user_id: string;
@@ -372,6 +425,7 @@ export type Database = {
         };
         Update: {
           amount?: number;
+          cash_amount?: number;
           created_at?: string;
           entry_id?: string;
           fleet_user_id?: string;

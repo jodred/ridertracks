@@ -150,7 +150,7 @@ function FleetReportsPage() {
     const [earningResult, adjustmentResult] = await Promise.all([
       supabase
         .from("fleet_entry_earnings")
-        .select("id, fleet_user_id, entry_id, source_id, amount")
+        .select("id, fleet_user_id, entry_id, source_id, amount, cash_amount")
         .in("entry_id", entryIds),
       supabase
         .from("fleet_entry_adjustments")
@@ -167,6 +167,7 @@ function FleetReportsPage() {
       (earningResult.data ?? []).map((item) => ({
         ...item,
         amount: Number(item.amount),
+        cash_amount: Number(item.cash_amount),
       })) as EntryEarning[],
     );
     setAdjustments(
@@ -204,8 +205,13 @@ function FleetReportsPage() {
                 (earning) => entryIds.includes(earning.entry_id) && earning.source_id === source.id,
               )
               .reduce((sum, earning) => sum + Number(earning.amount), 0),
+            cash: earnings
+              .filter(
+                (earning) => entryIds.includes(earning.entry_id) && earning.source_id === source.id,
+              )
+              .reduce((sum, earning) => sum + Number(earning.cash_amount), 0),
           }))
-          .filter((source) => source.amount > 0);
+          .filter((source) => source.amount > 0 || source.cash > 0);
         return row;
       }),
     [

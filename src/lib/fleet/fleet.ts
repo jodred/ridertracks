@@ -36,7 +36,7 @@ export interface DriverRow {
   additions: number;
   extraDeductions: number;
   netAdjustments: number;
-  sourceEarnings: { sourceId: string; name: string; amount: number }[];
+  sourceEarnings: { sourceId: string; name: string; amount: number; cash: number }[];
   adjustments: EntryAdjustment[];
   payout: number;
 }
@@ -144,8 +144,11 @@ export function invoiceHtml(
           ${
             row.sourceEarnings.length > 0
               ? `${row.sourceEarnings
-                  .filter((source) => source.amount > 0)
-                  .map((source) => line(escapeHtml(source.name), amount(source.amount)))
+                  .filter((source) => source.amount > 0 || source.cash > 0)
+                  .flatMap((source) => [
+                    line(`${escapeHtml(source.name)} gross`, amount(source.amount)),
+                    line(`${escapeHtml(source.name)} cash collected`, amount(source.cash, "− ")),
+                  ])
                   .join("")}${line("Gross earnings total", amount(row.gross), true)}`
               : line("Unallocated gross earnings", amount(row.gross))
           }
