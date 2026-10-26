@@ -200,7 +200,7 @@ export function invoiceHtml(
       <tr><td style="padding:26px 30px;background:#08783e;color:#ffffff">
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0"><tr>
           <td valign="top">
-            <div style="font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#bbf7d0">RideTracks settlement</div>
+            <div style="font-size:11px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#bbf7d0">Fleet partner settlement</div>
             <div style="margin-top:7px;font-size:25px;line-height:30px;font-weight:800">${escapeHtml(company)}</div>
           </td>
           <td align="right" valign="top">
